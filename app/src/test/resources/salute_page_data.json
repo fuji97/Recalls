@@ -1,0 +1,55 @@
+{
+  "result": {
+    "data": {
+      "extSicurezzaAlimentare": {
+        "nodes": [
+          {
+            "id": "uuid-1",
+            "path": { "alias": "/ext-avviso-sicurezza-alimentare/filetti-di-alici-olio" },
+            "dataPubblicazione": "24/09/2026",
+            "field_depubblicato": false,
+            "field_marca": "Acme Foods",
+            "title": "Filetti di alici in olio",
+            "relationships": {
+              "field_motivo_segnalazione": { "name": "Richiamo per rischio chimico" },
+              "field_file_allegato": [
+                {
+                  "filemime": "application/pdf",
+                  "filename": "avviso.pdf",
+                  "url": "/sites/default/files/external_data/avviso1.pdf"
+                }
+              ]
+            }
+          },
+          {
+            "id": "uuid-2",
+            "path": { "alias": "/ext-avviso-sicurezza-alimentare/prodotto-depubblicato" },
+            "dataPubblicazione": "20/09/2026",
+            "field_depubblicato": true,
+            "field_marca": "Beta Snacks",
+            "title": "Prodotto ritirato",
+            "relationships": {
+              "field_motivo_segnalazione": { "name": "Richiamo per rischio microbiologico" },
+              "field_file_allegato": []
+            }
+          },
+          {
+            "id": "uuid-3",
+            "path": { "alias": "/ext-avviso-sicurezza-alimentare/scadenza-prodotto" },
+            "dataPubblicazione": "18/09/2026",
+            "field_depubblicato": false,
+            "field_marca": "Gamma Dairy",
+            "title": "Revoca del richiamo",
+            "relationships": {
+              "field_motivo_segnalazione": { "name": "Revoca per scadenza prodotto" },
+              "field_file_allegato": []
+            }
+          }
+        ]
+      },
+      "avvisiDiSicurezza": [
+        { "unrelated": "field", "another": { "nested": true } }
+      ]
+    }
+  }
+}

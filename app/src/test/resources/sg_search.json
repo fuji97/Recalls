@@ -1,0 +1,44 @@
+{
+  "content": [
+    {
+      "id": 12345,
+      "reference": "SR/00001/26",
+      "publicationDate": "2026-09-24T13:57:06.082+00:00",
+      "product": {
+        "name": null,
+        "nameSpecific": "Maschera respiratoria",
+        "brands": [
+          { "brand": "AcmeBrand" },
+          { "brand": "OtherBrand" }
+        ],
+        "photos": [
+          { "id": 111, "mainPicture": false },
+          { "id": 222, "mainPicture": true }
+        ]
+      },
+      "risk": {
+        "riskType": [
+          { "key": "riskType.chemical", "name": "CHEMICAL" },
+          { "key": "riskType.injuries", "name": "INJURIES" }
+        ]
+      }
+    },
+    {
+      "id": 67890,
+      "reference": "SR/00002/26",
+      "publicationDate": "2026-09-22T10:00:00.000+00:00",
+      "product": {
+        "name": "Giocattolo",
+        "nameSpecific": "Peluche",
+        "brands": [],
+        "photos": []
+      },
+      "risk": {
+        "riskType": [
+          { "key": "riskType.choking", "name": "CHOKING" }
+        ]
+      }
+    }
+  ],
+  "last": true
+}

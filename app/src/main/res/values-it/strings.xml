@@ -1,0 +1,112 @@
+<resources>
+    <string name="app_name">Recalls</string>
+
+    <!-- List screen -->
+    <string name="list_title">Richiami</string>
+    <string name="list_subtitle_updated">Aggiornato %1$s</string>
+    <string name="action_mark_all_read">Segna tutti come letti</string>
+    <string name="action_settings">Impostazioni</string>
+    <string name="search_hint">Cerca</string>
+    <string name="action_clear_search">Cancella ricerca</string>
+    <string name="empty">Nessun richiamo trovato</string>
+    <string name="filter_all">Tutti</string>
+    <string name="filter_eu">UE</string>
+    <string name="filter_it">Italia</string>
+    <string name="filter_unread">Solo non letti</string>
+    <string name="today">Oggi</string>
+    <string name="yesterday">Ieri</string>
+    <string name="error_sync_failed">Aggiornamento non riuscito: %1$s</string>
+
+    <!-- Card / source labels -->
+    <string name="source_eu">UE · Safety Gate</string>
+    <string name="source_it_operator">Italia · Richiamo operatore</string>
+    <string name="source_it_ministry">Italia · Avviso Ministero</string>
+    <string name="revoked">Revoca</string>
+
+    <!-- Detail screen -->
+    <string name="action_back">Indietro</string>
+    <string name="action_share">Condividi</string>
+    <string name="detail_open_official">Apri pagina ufficiale</string>
+    <string name="detail_pdf_button">Avviso di richiamo (PDF)</string>
+    <string name="detail_retry">Riprova</string>
+    <string name="detail_loading_error">Impossibile caricare i dettagli</string>
+    <string name="detail_label_product">Prodotto</string>
+    <string name="detail_label_description">Descrizione</string>
+    <string name="detail_label_category">Categoria</string>
+    <string name="detail_label_brand">Marca</string>
+    <string name="detail_label_model_type">Modello / tipo</string>
+    <string name="detail_label_batch_numbers">Numeri di lotto</string>
+    <string name="detail_label_barcodes">Codici a barre</string>
+    <string name="detail_label_risk_types">Tipi di rischio</string>
+    <string name="detail_label_risk_description">Descrizione del rischio</string>
+    <string name="detail_label_legal_provision">Disposizione legale</string>
+    <string name="detail_label_measures">Misure adottate</string>
+    <string name="detail_label_country">Paese notificante</string>
+    <string name="detail_label_country_origin">Paese di origine</string>
+    <string name="detail_label_sold_online">Venduto online</string>
+    <string name="detail_label_online_traders">Rivenditori online</string>
+    <string name="detail_label_reference">Riferimento</string>
+    <string name="detail_label_reason">Motivo</string>
+    <string name="detail_label_published">Pubblicato</string>
+    <string name="detail_label_hazard">Pericolo</string>
+    <string name="detail_share_text">%1$s\n%2$s</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_check_interval_title">Controlla nuovi richiami</string>
+    <string name="settings_check_interval_summary">Ogni %1$d ore</string>
+    <string name="settings_interval_dialog_title">Intervallo di controllo</string>
+    <string name="settings_notify_eu_title">Notifiche richiami UE</string>
+    <string name="settings_notify_it_title">Notifiche richiami italiani</string>
+    <string name="settings_system_notifications_title">Impostazioni di sistema per le notifiche</string>
+    <string name="settings_notifications_blocked">Le notifiche sono bloccate</string>
+    <string name="settings_last_update_title">Ultimo aggiornamento</string>
+    <string name="settings_check_now">Controlla ora</string>
+    <string name="settings_data_sources_title">Fonti dei dati</string>
+    <string name="settings_source_eu">Commissione europea – Safety Gate</string>
+    <string name="settings_source_it">Ministero della Salute</string>
+    <string name="settings_never">Mai</string>
+    <string name="hours_format">%1$d h</string>
+
+    <!-- Notification channels -->
+    <string name="channel_eu">Richiami UE (Safety Gate)</string>
+    <string name="channel_it">Richiami in Italia (Ministero della Salute)</string>
+
+    <!-- Notifications -->
+    <string name="notif_new_eu">Nuovo richiamo UE</string>
+    <string name="notif_new_it">Nuovo richiamo in Italia</string>
+    <string name="notif_more">"+%1$d altri"</string>
+
+    <!-- Risk labels -->
+    <string name="risk_asphyxiation">Asfissia</string>
+    <string name="risk_burns">Ustioni</string>
+    <string name="risk_chemical">Chimico</string>
+    <string name="risk_choking">Soffocamento</string>
+    <string name="risk_cuts">Tagli</string>
+    <string name="risk_damage_to_hearing">Danni all\'udito</string>
+    <string name="risk_damage_to_sight">Danni alla vista</string>
+    <string name="risk_drowning">Annegamento</string>
+    <string name="risk_electric_shock">Scossa elettrica</string>
+    <string name="risk_electromagnetic_disturbance">Disturbi elettromagnetici</string>
+    <string name="risk_energy_consumption">Consumo energetico</string>
+    <string name="risk_entrapment">Intrappolamento</string>
+    <string name="risk_environment">Ambiente</string>
+    <string name="risk_fire">Incendio</string>
+    <string name="risk_health_risk_other">Altro rischio per la salute</string>
+    <string name="risk_injuries">Lesioni</string>
+    <string name="risk_measurement_incorrect">Misurazione errata</string>
+    <string name="risk_microbiological">Microbiologico</string>
+    <string name="risk_security">Sicurezza</string>
+    <string name="risk_strangulation">Strangolamento</string>
+    <string name="risk_suffocation">Asfissia da ostruzione</string>
+    <string name="risk_other">Altro</string>
+
+    <plurals name="notif_many_eu">
+        <item quantity="one">%1$d nuovo richiamo UE</item>
+        <item quantity="other">%1$d nuovi richiami UE</item>
+    </plurals>
+    <plurals name="notif_many_it">
+        <item quantity="one">%1$d nuovo richiamo in Italia</item>
+        <item quantity="other">%1$d nuovi richiami in Italia</item>
+    </plurals>
+</resources>

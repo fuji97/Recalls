@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Avvisi di sicurezza alimentare</title>
+    <item>
+      <title>Avviso: Prodotto X</title>
+      <link>https://www.salute.gov.it/new/it/avvisi-sicurezza-alimentare/prodotto-x</link>
+      <description>Prodotto: X  Marca: Y</description>
+      <pubDate>19/11/2025</pubDate>
+    </item>
+    <item>
+      <title>Ignored item without link</title>
+      <link/>
+      <description>Prodotto: Z</description>
+      <pubDate>01/01/2025</pubDate>
+    </item>
+    <item>
+      <title>Avviso: Prodotto W</title>
+      <link>https://www.salute.gov.it/new/it/avvisi-sicurezza-alimentare/prodotto-w</link>
+      <description>Prodotto: W  Marca: V</description>
+      <pubDate>05/03/2025</pubDate>
+    </item>
+  </channel>
+</rss>

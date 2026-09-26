@@ -1,0 +1,112 @@
+<resources>
+    <string name="app_name">Recalls</string>
+
+    <!-- List screen -->
+    <string name="list_title">Recalls</string>
+    <string name="list_subtitle_updated">Updated %1$s</string>
+    <string name="action_mark_all_read">Mark all as read</string>
+    <string name="action_settings">Settings</string>
+    <string name="search_hint">Search</string>
+    <string name="action_clear_search">Clear search</string>
+    <string name="empty">No recalls found</string>
+    <string name="filter_all">All</string>
+    <string name="filter_eu">EU</string>
+    <string name="filter_it">Italy</string>
+    <string name="filter_unread">Unread only</string>
+    <string name="today">Today</string>
+    <string name="yesterday">Yesterday</string>
+    <string name="error_sync_failed">Couldn\'t update: %1$s</string>
+
+    <!-- Card / source labels -->
+    <string name="source_eu">EU · Safety Gate</string>
+    <string name="source_it_operator">Italy · Operator recall</string>
+    <string name="source_it_ministry">Italy · Ministry notice</string>
+    <string name="revoked">Revoked</string>
+
+    <!-- Detail screen -->
+    <string name="action_back">Back</string>
+    <string name="action_share">Share</string>
+    <string name="detail_open_official">Open official page</string>
+    <string name="detail_pdf_button">Recall notice (PDF)</string>
+    <string name="detail_retry">Retry</string>
+    <string name="detail_loading_error">Couldn\'t load details</string>
+    <string name="detail_label_product">Product</string>
+    <string name="detail_label_description">Description</string>
+    <string name="detail_label_category">Category</string>
+    <string name="detail_label_brand">Brand</string>
+    <string name="detail_label_model_type">Model / type</string>
+    <string name="detail_label_batch_numbers">Batch numbers</string>
+    <string name="detail_label_barcodes">Barcodes</string>
+    <string name="detail_label_risk_types">Risk types</string>
+    <string name="detail_label_risk_description">Risk description</string>
+    <string name="detail_label_legal_provision">Legal provision</string>
+    <string name="detail_label_measures">Measures taken</string>
+    <string name="detail_label_country">Notifying country</string>
+    <string name="detail_label_country_origin">Country of origin</string>
+    <string name="detail_label_sold_online">Sold online</string>
+    <string name="detail_label_online_traders">Online traders</string>
+    <string name="detail_label_reference">Reference</string>
+    <string name="detail_label_reason">Reason</string>
+    <string name="detail_label_published">Published</string>
+    <string name="detail_label_hazard">Hazard</string>
+    <string name="detail_share_text">%1$s\n%2$s</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_check_interval_title">Check for new recalls</string>
+    <string name="settings_check_interval_summary">Every %1$d hours</string>
+    <string name="settings_interval_dialog_title">Check interval</string>
+    <string name="settings_notify_eu_title">EU recalls notifications</string>
+    <string name="settings_notify_it_title">Italian recalls notifications</string>
+    <string name="settings_system_notifications_title">System notification settings</string>
+    <string name="settings_notifications_blocked">Notifications are blocked</string>
+    <string name="settings_last_update_title">Last update</string>
+    <string name="settings_check_now">Check now</string>
+    <string name="settings_data_sources_title">Data sources</string>
+    <string name="settings_source_eu">European Commission – Safety Gate</string>
+    <string name="settings_source_it">Ministero della Salute</string>
+    <string name="settings_never">Never</string>
+    <string name="hours_format">%1$d h</string>
+
+    <!-- Notification channels -->
+    <string name="channel_eu">EU recalls (Safety Gate)</string>
+    <string name="channel_it">Italian recalls (Ministero della Salute)</string>
+
+    <!-- Notifications -->
+    <string name="notif_new_eu">New EU recall</string>
+    <string name="notif_new_it">New recall in Italy</string>
+    <string name="notif_more">"+%1$d more"</string>
+
+    <!-- Risk labels -->
+    <string name="risk_asphyxiation">Asphyxiation</string>
+    <string name="risk_burns">Burns</string>
+    <string name="risk_chemical">Chemical</string>
+    <string name="risk_choking">Choking</string>
+    <string name="risk_cuts">Cuts</string>
+    <string name="risk_damage_to_hearing">Damage to hearing</string>
+    <string name="risk_damage_to_sight">Damage to sight</string>
+    <string name="risk_drowning">Drowning</string>
+    <string name="risk_electric_shock">Electric shock</string>
+    <string name="risk_electromagnetic_disturbance">Electromagnetic disturbance</string>
+    <string name="risk_energy_consumption">Energy consumption</string>
+    <string name="risk_entrapment">Entrapment</string>
+    <string name="risk_environment">Environment</string>
+    <string name="risk_fire">Fire</string>
+    <string name="risk_health_risk_other">Other health risk</string>
+    <string name="risk_injuries">Injuries</string>
+    <string name="risk_measurement_incorrect">Incorrect measurement</string>
+    <string name="risk_microbiological">Microbiological</string>
+    <string name="risk_security">Security</string>
+    <string name="risk_strangulation">Strangulation</string>
+    <string name="risk_suffocation">Suffocation</string>
+    <string name="risk_other">Other</string>
+
+    <plurals name="notif_many_eu">
+        <item quantity="one">%1$d new EU recall</item>
+        <item quantity="other">%1$d new EU recalls</item>
+    </plurals>
+    <plurals name="notif_many_it">
+        <item quantity="one">%1$d new recall in Italy</item>
+        <item quantity="other">%1$d new recalls in Italy</item>
+    </plurals>
+</resources>
