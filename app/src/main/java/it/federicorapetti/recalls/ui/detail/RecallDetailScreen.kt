@@ -3,12 +3,15 @@ package it.federicorapetti.recalls.ui.detail
 import android.content.Intent
 import android.graphics.Bitmap
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,24 +30,28 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.toShape
 import androidx.compose.material3.carousel.CarouselItemScope
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -52,7 +59,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -66,10 +76,12 @@ import it.federicorapetti.recalls.R
 import it.federicorapetti.recalls.data.local.RecallEntity
 import it.federicorapetti.recalls.data.model.RecallSource
 import it.federicorapetti.recalls.data.remote.safetygate.SafetyGateApi
+import it.federicorapetti.recalls.data.remote.salute.OperatorPdfFields
 import it.federicorapetti.recalls.data.remote.salute.ROME
 import it.federicorapetti.recalls.ui.common.riskLabel
 import java.time.Instant
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 @Composable
 fun RecallDetailScreen(
@@ -79,13 +91,21 @@ fun RecallDetailScreen(
     val item by viewModel.item.collectAsStateWithLifecycle()
     val sgState by viewModel.sgDetail.collectAsStateWithLifecycle()
     val pdfPhotosState by viewModel.pdfPhotos.collectAsStateWithLifecycle()
+    val pdfFields by viewModel.pdfFields.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    var titleBottom by remember { mutableIntStateOf(Int.MAX_VALUE) }
+    val showTopBarTitle by remember { derivedStateOf { scrollState.value >= titleBottom } }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            MediumFlexibleTopAppBar(
+            TopAppBar(
                 title = {
-                    Text(item?.title.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    AnimatedVisibility(visible = showTopBarTitle, enter = fadeIn(), exit = fadeOut()) {
+                        Text(item?.title.orEmpty(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -114,7 +134,8 @@ fun RecallDetailScreen(
                             )
                         }
                     }
-                }
+                },
+                scrollBehavior = scrollBehavior
             )
         }
     ) { padding ->
@@ -131,32 +152,36 @@ fun RecallDetailScreen(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
             ) {
                 DetailHeader(entity, sgState, pdfPhotosState)
                 Text(
-                    text = entity.title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    text = "${sourceLabelText(entity.source)} · ${formatDate(entity.publishedAt)}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp)
                 )
                 Text(
-                    text = "${sourceLabelText(entity.source)} · ${formatDate(entity.publishedAt)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    text = entity.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .onGloballyPositioned {
+                            titleBottom = (it.positionInParent().y + it.size.height).roundToInt()
+                        }
                 )
                 Text(
                     text = attributionText(entity.source),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(16.dp))
 
                 when (entity.source) {
                     RecallSource.SAFETY_GATE -> SafetyGateSections(sgState, onRetry = viewModel::retry)
-                    RecallSource.IT_OPERATOR -> ItOperatorSections(entity)
+                    RecallSource.IT_OPERATOR -> ItOperatorSections(entity, pdfFields)
                     RecallSource.IT_MINISTRY -> ItMinistrySections(entity)
                 }
 
@@ -386,47 +411,163 @@ private fun SafetyGateSections(state: SgDetailState, onRetry: () -> Unit) {
                 }
             }
 
-            DetailRow(stringResource(R.string.detail_label_product), version?.name)
-            DetailRow(stringResource(R.string.detail_label_description), version?.description)
-            DetailRow(stringResource(R.string.detail_label_category), detail.product.productCategory?.name)
-            DetailRow(stringResource(R.string.detail_label_brand), joinOrNull(brands))
-            DetailRow(stringResource(R.string.detail_label_model_type), joinOrNull(modelTypes))
-            DetailRow(stringResource(R.string.detail_label_batch_numbers), joinOrNull(batchNumbers))
-            DetailRow(stringResource(R.string.detail_label_barcodes), joinOrNull(barcodes))
-            DetailRow(stringResource(R.string.detail_label_risk_types), joinOrNull(riskTypeLabels))
-            DetailRow(stringResource(R.string.detail_label_risk_description), riskVersion?.riskDescription)
-            DetailRow(stringResource(R.string.detail_label_legal_provision), riskVersion?.legalProvision)
-            DetailRow(stringResource(R.string.detail_label_measures), measures.joinToString("\n").ifBlank { null })
-            DetailRow(stringResource(R.string.detail_label_country), detail.country?.name)
-            DetailRow(stringResource(R.string.detail_label_country_origin), detail.traceability?.countryOrigin?.name)
-            DetailRow(stringResource(R.string.detail_label_sold_online), detail.traceability?.isSoldOnline?.name)
-            DetailRow(stringResource(R.string.detail_label_online_traders), traders.joinToString("\n").ifBlank { null })
+            DetailSection(
+                stringResource(R.string.detail_section_product),
+                listOf(
+                    DetailField(stringResource(R.string.detail_label_product), version?.name),
+                    DetailField(stringResource(R.string.detail_label_brand), joinOrNull(brands)),
+                    DetailField(stringResource(R.string.detail_label_category), detail.product.productCategory?.name),
+                    DetailField(stringResource(R.string.detail_label_model_type), joinOrNull(modelTypes)),
+                    DetailField(stringResource(R.string.detail_label_batch_numbers), joinOrNull(batchNumbers)),
+                    DetailField(stringResource(R.string.detail_label_barcodes), joinOrNull(barcodes)),
+                    DetailField(stringResource(R.string.detail_label_description), version?.description)
+                )
+            )
+            DetailSection(
+                stringResource(R.string.detail_section_risk),
+                listOf(
+                    DetailField(stringResource(R.string.detail_label_risk_types), joinOrNull(riskTypeLabels)),
+                    DetailField(stringResource(R.string.detail_label_risk_description), riskVersion?.riskDescription),
+                    DetailField(stringResource(R.string.detail_label_legal_provision), riskVersion?.legalProvision)
+                )
+            )
+            DetailSection(
+                stringResource(R.string.detail_section_distribution),
+                listOf(
+                    DetailField(stringResource(R.string.detail_label_country), detail.country?.name),
+                    DetailField(
+                        stringResource(R.string.detail_label_country_origin),
+                        detail.traceability?.countryOrigin?.name
+                    ),
+                    DetailField(stringResource(R.string.detail_label_sold_online), detail.traceability?.isSoldOnline?.name),
+                    DetailField(stringResource(R.string.detail_label_measures), measures.joinToString("\n").ifBlank { null }),
+                    DetailField(
+                        stringResource(R.string.detail_label_online_traders),
+                        traders.joinToString("\n").ifBlank { null }
+                    )
+                )
+            )
         }
     }
 }
 
 @Composable
-private fun ItOperatorSections(entity: RecallEntity) {
-    DetailRow(stringResource(R.string.detail_label_brand), entity.brand)
-    DetailRow(stringResource(R.string.detail_label_reason), entity.reason)
-    DetailRow(stringResource(R.string.detail_label_published), formatDate(entity.publishedAt))
+private fun ItOperatorSections(entity: RecallEntity, fields: OperatorPdfFields?) {
+    DetailSection(
+        stringResource(R.string.detail_section_product),
+        listOf(
+            DetailField(stringResource(R.string.detail_label_product), fields?.productName),
+            DetailField(stringResource(R.string.detail_label_brand), entity.brand ?: fields?.brand),
+            DetailField(stringResource(R.string.detail_label_lot), fields?.lot),
+            DetailField(stringResource(R.string.detail_label_expiry), fields?.expiry),
+            DetailField(stringResource(R.string.detail_label_quantity), fields?.quantity),
+            DetailField(stringResource(R.string.detail_label_plant_mark), fields?.plantMark)
+        )
+    )
+    DetailSection(
+        stringResource(R.string.detail_section_recall),
+        listOf(
+            DetailField(stringResource(R.string.detail_label_reason), entity.reason),
+            DetailField(stringResource(R.string.detail_label_published), formatDate(entity.publishedAt)),
+            DetailField(stringResource(R.string.detail_label_reason_detail), fields?.reasonDetail),
+            DetailField(stringResource(R.string.detail_label_warnings), fields?.warnings)
+        )
+    )
+    DetailSection(
+        stringResource(R.string.detail_section_operator),
+        listOf(
+            DetailField(stringResource(R.string.detail_label_operator), fields?.operator),
+            DetailField(stringResource(R.string.detail_label_producer), fields?.producer),
+            DetailField(stringResource(R.string.detail_label_plant_site), fields?.plantSite)
+        )
+    )
 }
 
 @Composable
 private fun ItMinistrySections(entity: RecallEntity) {
-    DetailRow(stringResource(R.string.detail_label_product), entity.subtitle)
-    DetailRow(stringResource(R.string.detail_label_brand), entity.brand)
-    DetailRow(stringResource(R.string.detail_label_hazard), entity.reason)
-    DetailRow(stringResource(R.string.detail_label_country), entity.country)
+    DetailSection(
+        stringResource(R.string.detail_section_product),
+        listOf(
+            DetailField(stringResource(R.string.detail_label_product), entity.subtitle),
+            DetailField(stringResource(R.string.detail_label_brand), entity.brand)
+        )
+    )
+    DetailSection(
+        stringResource(R.string.detail_section_risk),
+        listOf(
+            DetailField(stringResource(R.string.detail_label_hazard), entity.reason),
+            DetailField(stringResource(R.string.detail_label_country), entity.country)
+        )
+    )
 }
 
 @Composable
-private fun DetailRow(label: String, value: String?) {
-    if (value.isNullOrBlank()) return
-    ListItem(
-        headlineContent = { Text(value) },
-        overlineContent = { Text(label) }
-    )
+private fun DetailSection(title: String, fields: List<DetailField>) {
+    val visible = fields.filter { !it.value.isNullOrBlank() }
+    if (visible.isEmpty()) return
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            detailFieldRows(visible).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    row.forEach { DetailFieldCell(it, Modifier.weight(1f)) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailFieldCell(field: DetailField, modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(
+            field.label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            field.value.orEmpty(),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+private data class DetailField(val label: String, val value: String?)
+
+/** Values up to this length without line breaks share a row with a neighbouring short value. */
+private const val SHORT_FIELD_MAX_CHARS = 30
+
+private fun DetailField.isShort(): Boolean =
+    value.orEmpty().length <= SHORT_FIELD_MAX_CHARS && '\n' !in value.orEmpty()
+
+/**
+ * Groups fields into grid rows in their original order: two consecutive short fields share a row,
+ * anything else gets a row of its own.
+ */
+private fun detailFieldRows(fields: List<DetailField>): List<List<DetailField>> {
+    val rows = mutableListOf<List<DetailField>>()
+    var pending: DetailField? = null
+    for (field in fields) {
+        if (field.isShort()) {
+            if (pending != null) {
+                rows += listOf(pending, field)
+                pending = null
+            } else {
+                pending = field
+            }
+        } else {
+            pending?.let { rows += listOf(it) }
+            pending = null
+            rows += listOf(field)
+        }
+    }
+    pending?.let { rows += listOf(it) }
+    return rows
 }
 
 private fun joinOrNull(values: List<String>): String? =

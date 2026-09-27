@@ -7,9 +7,14 @@ import androidx.lifecycle.viewModelScope
 import it.federicorapetti.recalls.data.RecallRepository
 import it.federicorapetti.recalls.data.local.RecallEntity
 import it.federicorapetti.recalls.data.model.RecallSource
+import it.federicorapetti.recalls.data.remote.downloadTo
 import it.federicorapetti.recalls.data.remote.safetygate.SgDetail
+import it.federicorapetti.recalls.data.remote.salute.OperatorPdfFields
+import it.federicorapetti.recalls.data.remote.salute.OperatorPdfFieldsReader
 import it.federicorapetti.recalls.image.PdfPhotoExtractor
+import java.io.File
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +22,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 
 sealed interface SgDetailState {
@@ -46,6 +52,9 @@ class RecallDetailViewModel(
     private val _pdfPhotos = MutableStateFlow<PdfPhotosState>(PdfPhotosState.Loading)
     val pdfPhotos: StateFlow<PdfPhotosState> = _pdfPhotos
 
+    private val _pdfFields = MutableStateFlow<OperatorPdfFields?>(null)
+    val pdfFields: StateFlow<OperatorPdfFields?> = _pdfFields
+
     private var markedRead = false
 
     init {
@@ -61,7 +70,7 @@ class RecallDetailViewModel(
                     loadSafetyGateDetail(entity.remoteId)
                 RecallSource.IT_OPERATOR ->
                     if (attachmentUrl != null) {
-                        loadPdfPhotos(attachmentUrl)
+                        loadPdf(attachmentUrl)
                     } else {
                         _pdfPhotos.value = PdfPhotosState.Loaded(emptyList())
                     }
@@ -89,19 +98,40 @@ class RecallDetailViewModel(
     }
 
     /**
-     * Extracts every product photo embedded in the recall PDF for the detail carousel. Any
-     * failure (network, corrupt PDF, no photo boxes) resolves to [PdfPhotosState.Loaded] with an
-     * empty list so the header falls back to the generic placeholder icon instead of surfacing an
-     * error state.
+     * Downloads the recall PDF once and feeds both the photo carousel and the form-field rows
+     * from that single copy. Photos publish first so the carousel never waits on the PDFBox
+     * parse. Every failure degrades gracefully: a download failure or corrupt PDF yields no
+     * photos and no fields; a PDF that isn't the known operator-form template yields no fields
+     * (and possibly still photos, since photo boxes are template-independent).
      */
-    private suspend fun loadPdfPhotos(attachmentUrl: String) {
+    private suspend fun loadPdf(attachmentUrl: String) = withContext(Dispatchers.IO) {
         _pdfPhotos.value = PdfPhotosState.Loading
-        _pdfPhotos.value = try {
-            PdfPhotosState.Loaded(PdfPhotoExtractor.extract(context, httpClient, attachmentUrl))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            PdfPhotosState.Loaded(emptyList())
+        val file = File.createTempFile("recall", ".pdf", context.cacheDir)
+        try {
+            try {
+                httpClient.downloadTo(attachmentUrl, file)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _pdfPhotos.value = PdfPhotosState.Loaded(emptyList())
+                return@withContext
+            }
+            _pdfPhotos.value = PdfPhotosState.Loaded(
+                try {
+                    PdfPhotoExtractor.extract(file)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+            )
+            _pdfFields.value = try {
+                OperatorPdfFieldsReader.read(context, file)
+            } catch (e: Exception) {
+                null
+            } catch (e: LinkageError) {
+                null // BouncyCastle is excluded; a certificate-encrypted PDF would hit a missing class.
+            }
+        } finally {
+            file.delete()
         }
     }
 }

@@ -1,5 +1,6 @@
 package it.federicorapetti.recalls.data.remote
 
+import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,14 @@ suspend fun <T> OkHttpClient.execute(request: Request, block: (Response) -> T): 
     withContext(Dispatchers.IO) {
         newCall(request).execute().use(block)
     }
+
+suspend fun OkHttpClient.downloadTo(url: String, file: File) {
+    val request = Request.Builder().url(url).build()
+    execute(request) { response ->
+        if (!response.isSuccessful) throw HttpStatusException(response.code)
+        file.outputStream().use { out -> response.body.byteStream().copyTo(out) }
+    }
+}
 
 val AppJson = Json {
     ignoreUnknownKeys = true

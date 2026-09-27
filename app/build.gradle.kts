@@ -97,6 +97,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.pdfbox.android) {
+        // Only needed for certificate-encrypted PDFs; operator recall PDFs aren't encrypted.
+        exclude(group = "org.bouncycastle")
+    }
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
