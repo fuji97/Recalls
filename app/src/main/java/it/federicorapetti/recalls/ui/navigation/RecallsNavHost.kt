@@ -1,8 +1,17 @@
 package it.federicorapetti.recalls.ui.navigation
 
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -43,6 +52,9 @@ fun RecallsNavHost(
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
+        transitionSpec = { slideForward() },
+        popTransitionSpec = { slideBack() },
+        predictivePopTransitionSpec = { _ -> slideBack(predictiveSlideSpec) },
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator()
@@ -57,7 +69,7 @@ fun RecallsNavHost(
             }
             entry<RecallDetailKey> { key ->
                 val detailViewModel = viewModel {
-                    RecallDetailViewModel(key.id, container.repository)
+                    RecallDetailViewModel(key.id, container.repository, container.appContext, container.httpClient)
                 }
                 RecallDetailScreen(
                     viewModel = detailViewModel,
@@ -76,3 +88,21 @@ fun RecallsNavHost(
         }
     )
 }
+
+private const val SLIDE_DURATION_MS = 350
+private val slideSpec: FiniteAnimationSpec<IntOffset> =
+    tween(durationMillis = SLIDE_DURATION_MS, easing = FastOutSlowInEasing)
+
+// Linear so the page tracks the finger 1:1 while the predictive-back gesture seeks the transition.
+private val predictiveSlideSpec: FiniteAnimationSpec<IntOffset> =
+    tween(durationMillis = SLIDE_DURATION_MS, easing = LinearEasing)
+
+private fun slideForward(): ContentTransform =
+    slideInHorizontally(slideSpec) { fullWidth -> fullWidth } togetherWith
+        slideOutHorizontally(slideSpec) { fullWidth -> -fullWidth }
+
+private fun slideBack(spec: FiniteAnimationSpec<IntOffset> = slideSpec): ContentTransform =
+    slideInHorizontally(spec) { fullWidth -> -fullWidth } togetherWith
+        slideOutHorizontally(spec) { fullWidth -> fullWidth }
+
+
