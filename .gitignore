@@ -18,3 +18,5 @@ local.properties
 *.jks
 *.keystore
 keystore.properties
+.idea/
+node_modules/

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "compose-animations": {
+      "source": "chrisbanes/skills",
+      "sourceType": "github",
+      "skillPath": "skills/compose-animations/SKILL.md",
+      "computedHash": "03397a33040128057c65813037d31dbf37cf5e2e1ce5961ff7e1c12eaac51449"
+    },
+    "compose-performance": {
+      "source": "chrisbanes/skills",
+      "sourceType": "github",
+      "skillPath": "skills/compose-performance/SKILL.md",
+      "computedHash": "6be34619d8d8717dd01453592944003b0af79dc4ac639831a90ee6bbf76f471e"
+    },
+    "create-readme": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "skillPath": "skills/create-readme/SKILL.md",
+      "computedHash": "d0ece1b2164ce1376e4ab6e98d6ac079df3a2a94f5f02224362b6a1ce2516ae9"
+    },
+    "material-3": {
+      "source": "hamen/material-3-skill",
+      "sourceType": "github",
+      "skillPath": "skills/material-3/SKILL.md",
+      "computedHash": "72d56347fae33c9b1763e16d0bffb781da382aa3be316b9252dcd35fd050c6bc"
+    }
+  }
+}
