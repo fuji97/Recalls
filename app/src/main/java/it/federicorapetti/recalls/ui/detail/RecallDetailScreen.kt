@@ -129,6 +129,12 @@ fun RecallDetailScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
+                Text(
+                    text = attributionText(entity.source),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                )
 
                 Spacer(Modifier.height(8.dp))
 
@@ -338,6 +344,13 @@ private fun sourceLabelText(source: RecallSource): String = when (source) {
     RecallSource.SAFETY_GATE -> stringResource(R.string.source_eu)
     RecallSource.IT_OPERATOR -> stringResource(R.string.source_it_operator)
     RecallSource.IT_MINISTRY -> stringResource(R.string.source_it_ministry)
+}
+
+/** Per-source CC BY 4.0 attribution shown on every detail screen (see docs/LEGAL.md). */
+@Composable
+private fun attributionText(source: RecallSource): String = when (source) {
+    RecallSource.SAFETY_GATE -> stringResource(R.string.detail_attribution_eu)
+    RecallSource.IT_OPERATOR, RecallSource.IT_MINISTRY -> stringResource(R.string.detail_attribution_it)
 }
 
 @Composable

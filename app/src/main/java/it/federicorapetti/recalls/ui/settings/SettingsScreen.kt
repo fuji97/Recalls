@@ -134,6 +134,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_source_eu)) },
+                supportingContent = { Text(stringResource(R.string.settings_source_licence_note)) },
                 modifier = Modifier.clickable {
                     CustomTabsIntent.Builder().build()
                         .launchUrl(context, "https://ec.europa.eu/safety-gate-alerts".toUri())
@@ -141,6 +142,7 @@ fun SettingsScreen(viewModel: SettingsViewModel, onBack: () -> Unit) {
             )
             ListItem(
                 headlineContent = { Text(stringResource(R.string.settings_source_it)) },
+                supportingContent = { Text(stringResource(R.string.settings_source_licence_note)) },
                 modifier = Modifier.clickable {
                     CustomTabsIntent.Builder().build().launchUrl(
                         context,

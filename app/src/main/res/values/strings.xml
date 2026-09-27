@@ -50,6 +50,8 @@
     <string name="detail_label_published">Published</string>
     <string name="detail_label_hazard">Hazard</string>
     <string name="detail_share_text">%1$s\n%2$s</string>
+    <string name="detail_attribution_eu">Source: European Commission – Safety Gate, CC BY 4.0</string>
+    <string name="detail_attribution_it">Source: Ministero della Salute – salute.gov.it, CC BY 4.0</string>
 
     <!-- Settings screen -->
     <string name="settings_title">Settings</string>
@@ -65,6 +67,7 @@
     <string name="settings_data_sources_title">Data sources</string>
     <string name="settings_source_eu">European Commission – Safety Gate</string>
     <string name="settings_source_it">Ministero della Salute</string>
+    <string name="settings_source_licence_note">CC BY 4.0 · Data reformatted by Recalls</string>
     <string name="settings_never">Never</string>
     <string name="hours_format">%1$d h</string>
 
