@@ -16,6 +16,8 @@ import kotlinx.coroutines.SupervisorJob
 import okhttp3.OkHttpClient
 
 class AppContainer(context: Context) {
+    val appContext: Context = context.applicationContext
+
     val appScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     val httpClient: OkHttpClient = buildHttpClient()
@@ -24,7 +26,7 @@ class AppContainer(context: Context) {
         context,
         RecallDatabase::class.java,
         RecallDatabase.DB_NAME
-    ).build()
+    ).addMigrations(RecallDatabase.MIGRATION_1_2).build()
 
     val dao = database.recallDao()
 

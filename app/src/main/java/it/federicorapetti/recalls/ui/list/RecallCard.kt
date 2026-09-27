@@ -16,6 +16,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,29 +80,36 @@ fun RecallCard(item: RecallEntity, onClick: () -> Unit, modifier: Modifier = Mod
 
 @Composable
 private fun RecallCardLeading(item: RecallEntity) {
-    if (item.imageUrl != null) {
+    var imageFailed by remember(item.imageUrl) { mutableStateOf(false) }
+    if (item.imageUrl != null && !imageFailed) {
         AsyncImage(
             model = item.imageUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
+            onError = { imageFailed = true },
             modifier = Modifier
                 .size(56.dp)
                 .clip(MaterialTheme.shapes.large)
         )
     } else {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(MaterialShapes.Cookie9Sided.toShape())
-                .background(MaterialTheme.colorScheme.tertiaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_release_alert),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-        }
+        RecallPlaceholderIcon()
+    }
+}
+
+@Composable
+private fun RecallPlaceholderIcon() {
+    Box(
+        modifier = Modifier
+            .size(56.dp)
+            .clip(MaterialShapes.Cookie9Sided.toShape())
+            .background(MaterialTheme.colorScheme.tertiaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_release_alert),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onTertiaryContainer
+        )
     }
 }
 

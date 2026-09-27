@@ -1,15 +1,25 @@
 package it.federicorapetti.recalls.ui.detail
 
 import android.content.Intent
+import android.graphics.Bitmap
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,12 +40,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.toShape
+import androidx.compose.material3.carousel.CarouselItemScope
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -62,6 +78,7 @@ fun RecallDetailScreen(
 ) {
     val item by viewModel.item.collectAsStateWithLifecycle()
     val sgState by viewModel.sgDetail.collectAsStateWithLifecycle()
+    val pdfPhotosState by viewModel.pdfPhotos.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     Scaffold(
@@ -116,8 +133,7 @@ fun RecallDetailScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
             ) {
-                DetailHeader(entity, sgState)
-
+                DetailHeader(entity, sgState, pdfPhotosState)
                 Text(
                     text = entity.title,
                     style = MaterialTheme.typography.headlineSmall,
@@ -149,20 +165,27 @@ fun RecallDetailScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 16.dp)
+                        .height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Button(onClick = {
-                        CustomTabsIntent.Builder().build().launchUrl(context, entity.webUrl.toUri())
-                    }) {
+                    Button(
+                        onClick = {
+                            CustomTabsIntent.Builder().build().launchUrl(context, entity.webUrl.toUri())
+                        },
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                    ) {
                         Icon(painterResource(R.drawable.ic_open_in_new), contentDescription = null)
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.detail_open_official))
                     }
                     if (entity.attachmentUrl != null) {
-                        FilledTonalButton(onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, entity.attachmentUrl.toUri()))
-                        }) {
+                        FilledTonalButton(
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, entity.attachmentUrl.toUri()))
+                            },
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                        ) {
                             Icon(painterResource(R.drawable.ic_picture_as_pdf), contentDescription = null)
                             Spacer(Modifier.width(8.dp))
                             Text(stringResource(R.string.detail_pdf_button))
@@ -177,61 +200,131 @@ fun RecallDetailScreen(
 }
 
 @Composable
-private fun DetailHeader(entity: RecallEntity, sgState: SgDetailState) {
-    val photos = (sgState as? SgDetailState.Loaded)?.detail?.product?.photos.orEmpty()
-    when {
-        entity.source == RecallSource.SAFETY_GATE && photos.isNotEmpty() -> {
-            val carouselState = rememberCarouselState { photos.size }
-            HorizontalMultiBrowseCarousel(
-                state = carouselState,
-                preferredItemWidth = 240.dp,
-                itemSpacing = 8.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp)
-                    .padding(vertical = 8.dp)
-            ) { index ->
-                val photoId = photos[index].id
-                if (photoId != null) {
-                    AsyncImage(
-                        model = SafetyGateApi.imageUrl(photoId),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .maskClip(MaterialTheme.shapes.extraLarge)
-                    )
+private fun DetailHeader(entity: RecallEntity, sgState: SgDetailState, pdfPhotosState: PdfPhotosState) {
+    var imageFailed by remember(entity.imageUrl) { mutableStateOf(false) }
+    when (entity.source) {
+        RecallSource.SAFETY_GATE -> {
+            val sgPhotos = (sgState as? SgDetailState.Loaded)?.detail?.product?.photos.orEmpty()
+            when {
+                sgState is SgDetailState.Loading -> CarouselSkeleton()
+                sgPhotos.isNotEmpty() -> PhotoCarousel(count = sgPhotos.size) { index ->
+                    val photoId = sgPhotos[index].id
+                    if (photoId != null) {
+                        AsyncImage(
+                            model = SafetyGateApi.imageUrl(photoId),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .maskClip(MaterialTheme.shapes.extraLarge)
+                        )
+                    }
+                }
+                else -> PlaceholderIcon()
+            }
+        }
+
+        RecallSource.IT_OPERATOR -> when (pdfPhotosState) {
+            PdfPhotosState.Loading -> CarouselSkeleton()
+            is PdfPhotosState.Loaded -> {
+                val pdfPhotos = pdfPhotosState.photos
+                if (pdfPhotos.isNotEmpty()) {
+                    PhotoCarousel(count = pdfPhotos.size) { index ->
+                        Image(
+                            bitmap = pdfPhotos[index].asImageBitmap(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .maskClip(MaterialTheme.shapes.extraLarge)
+                        )
+                    }
+                } else {
+                    PlaceholderIcon()
                 }
             }
         }
 
-        entity.source == RecallSource.IT_MINISTRY && entity.imageUrl != null -> {
+        RecallSource.IT_MINISTRY -> if (entity.imageUrl != null && !imageFailed) {
             AsyncImage(
                 model = entity.imageUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                onError = { imageFailed = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(240.dp)
             )
+        } else {
+            PlaceholderIcon()
         }
+    }
+}
 
-        else -> {
+/** A [HorizontalMultiBrowseCarousel] sized to match the detail header's photo slot. */
+@Composable
+private fun PhotoCarousel(count: Int, itemContent: @Composable CarouselItemScope.(Int) -> Unit) {
+    val carouselState = rememberCarouselState { count }
+    HorizontalMultiBrowseCarousel(
+        state = carouselState,
+        preferredItemWidth = 240.dp,
+        itemSpacing = 8.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(240.dp)
+            .padding(vertical = 8.dp),
+        content = itemContent
+    )
+}
+
+/** Pulsing placeholder shown in the detail header's photo slot while photos are still loading. */
+@Composable
+private fun CarouselSkeleton() {
+    val transition = rememberInfiniteTransition(label = "photoSkeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 700, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "photoSkeletonAlpha"
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(240.dp)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        repeat(2) {
             Box(
                 modifier = Modifier
-                    .padding(16.dp)
-                    .size(96.dp)
-                    .background(MaterialTheme.colorScheme.tertiaryContainer, MaterialShapes.Cookie9Sided.toShape()),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_release_alert),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                    modifier = Modifier.size(48.dp)
-                )
-            }
+                    .width(240.dp)
+                    .fillMaxHeight()
+                    .graphicsLayer { this.alpha = alpha }
+                    .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.extraLarge)
+            )
         }
+    }
+}
+
+/** The generic release-alert icon shown when a recall has no usable photo. */
+@Composable
+private fun PlaceholderIcon() {
+    Box(
+        modifier = Modifier
+            .padding(16.dp)
+            .size(96.dp)
+            .background(MaterialTheme.colorScheme.tertiaryContainer, MaterialShapes.Cookie9Sided.toShape()),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_release_alert),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier = Modifier.size(48.dp)
+        )
     }
 }
 
