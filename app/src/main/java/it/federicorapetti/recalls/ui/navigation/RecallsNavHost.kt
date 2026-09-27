@@ -24,6 +24,8 @@ import it.federicorapetti.recalls.ui.detail.RecallDetailScreen
 import it.federicorapetti.recalls.ui.detail.RecallDetailViewModel
 import it.federicorapetti.recalls.ui.list.RecallListScreen
 import it.federicorapetti.recalls.ui.list.RecallListViewModel
+import it.federicorapetti.recalls.ui.scan.BarcodeScanScreen
+import it.federicorapetti.recalls.ui.scan.BarcodeScanViewModel
 import it.federicorapetti.recalls.ui.settings.SettingsScreen
 import it.federicorapetti.recalls.ui.settings.SettingsViewModel
 import kotlinx.coroutines.flow.StateFlow
@@ -64,7 +66,8 @@ fun RecallsNavHost(
                 RecallListScreen(
                     viewModel = listViewModel,
                     onOpenDetail = { id -> backStack.add(RecallDetailKey(id)) },
-                    onOpenSettings = { backStack.add(SettingsKey) }
+                    onOpenSettings = { backStack.add(SettingsKey) },
+                    onOpenScanner = { backStack.add(ScanKey) }
                 )
             }
             entry<RecallDetailKey> { key ->
@@ -83,6 +86,14 @@ fun RecallsNavHost(
                 SettingsScreen(
                     viewModel = settingsViewModel,
                     onBack = { backStack.removeLastOrNull() }
+                )
+            }
+            entry<ScanKey> {
+                val scanViewModel = viewModel { BarcodeScanViewModel(container.repository) }
+                BarcodeScanScreen(
+                    viewModel = scanViewModel,
+                    onBack = { backStack.removeLastOrNull() },
+                    onOpenDetail = { id -> backStack.add(RecallDetailKey(id)) }
                 )
             }
         }

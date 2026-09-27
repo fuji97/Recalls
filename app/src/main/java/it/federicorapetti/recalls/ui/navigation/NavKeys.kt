@@ -11,3 +11,6 @@ data class RecallDetailKey(val id: String) : NavKey
 
 @Serializable
 data object SettingsKey : NavKey
+
+@Serializable
+data object ScanKey : NavKey

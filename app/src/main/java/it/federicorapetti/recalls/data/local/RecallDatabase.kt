@@ -6,8 +6,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [RecallEntity::class, SourceStateEntity::class],
-    version = 2,
+    entities = [RecallEntity::class, SourceStateEntity::class, SgBarcodeEntity::class],
+    version = 3,
     exportSchema = false
 )
 abstract class RecallDatabase : RoomDatabase() {
@@ -21,6 +21,14 @@ abstract class RecallDatabase : RoomDatabase() {
                 db.execSQL(
                     "UPDATE recalls SET imageUrl = attachmentUrl " +
                         "WHERE source = 'IT_OPERATOR' AND imageUrl IS NULL AND attachmentUrl IS NOT NULL"
+                )
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `sg_barcodes` (`recallId` TEXT NOT NULL, `codes` TEXT NOT NULL, PRIMARY KEY(`recallId`))"
                 )
             }
         }

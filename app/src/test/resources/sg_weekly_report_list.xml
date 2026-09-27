@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Safety Gate weekly report list -->
+<weeklyReports>
+    <weeklyReport>
+        <publicationDate>25/09/2026</publicationDate>
+        <URL>https://ec.europa.eu/safety-gate-alerts/api/download/weeklyReport/2026-38/en?lang=en&amp;search=%7B%7D</URL>
+    </weeklyReport>
+    <weeklyReport>
+        <publicationDate>18/09/2026</publicationDate>
+        <URL></URL>
+    </weeklyReport>
+    <weeklyReport>
+        <publicationDate>11/09/2026</publicationDate>
+        <URL>https://ec.europa.eu/safety-gate-alerts/api/download/weeklyReport/2026-36/en?lang=en&amp;search=%7B%7D</URL>
+    </weeklyReport>
+</weeklyReports>

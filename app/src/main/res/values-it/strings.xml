@@ -67,6 +67,18 @@
     <string name="detail_attribution_eu">Fonte: Commissione europea – Safety Gate, CC BY 4.0</string>
     <string name="detail_attribution_it">Fonte: Ministero della Salute – salute.gov.it, CC BY 4.0</string>
 
+    <!-- Scan screen -->
+    <string name="action_scan_barcode">Scansiona codice a barre</string>
+    <string name="scan_title">Scansiona codice a barre</string>
+    <string name="scan_hint">Inquadra il codice a barre del prodotto</string>
+    <string name="scan_camera_permission_needed">Serve l\'accesso alla fotocamera per scansionare i codici a barre.</string>
+    <string name="scan_allow_camera">Consenti fotocamera</string>
+    <string name="scan_open_settings">Apri impostazioni</string>
+    <string name="scan_barcode_value">Codice %1$s</string>
+    <string name="scan_no_match">Nessun richiamo UE trovato per questo codice</string>
+    <string name="scan_no_match_note">Solo gli avvisi UE Safety Gate (prodotti non alimentari) degli ultimi 90 giorni riportano i codici a barre. I richiami alimentari italiani non includono i codici a barre: cerca nell\'elenco per marca o nome del prodotto.</string>
+    <string name="scan_again">Scansiona di nuovo</string>
+
     <!-- Settings screen -->
     <string name="settings_title">Impostazioni</string>
     <string name="settings_check_interval_title">Controlla nuovi richiami</string>
@@ -125,5 +137,13 @@
     <plurals name="notif_many_it">
         <item quantity="one">%1$d nuovo richiamo in Italia</item>
         <item quantity="other">%1$d nuovi richiami in Italia</item>
+    </plurals>
+    <plurals name="scan_matches">
+        <item quantity="one">%1$d richiamo UE corrisponde a questo codice</item>
+        <item quantity="other">%1$d richiami UE corrispondono a questo codice</item>
+    </plurals>
+    <plurals name="scan_index_incomplete">
+        <item quantity="one">I codici di %1$d avviso UE recente non sono ancora stati scaricati: i risultati potrebbero essere incompleti.</item>
+        <item quantity="other">I codici di %1$d avvisi UE recenti non sono ancora stati scaricati: i risultati potrebbero essere incompleti.</item>
     </plurals>
 </resources>

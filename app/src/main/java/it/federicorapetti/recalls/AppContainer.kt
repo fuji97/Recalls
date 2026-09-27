@@ -26,7 +26,7 @@ class AppContainer(context: Context) {
         context,
         RecallDatabase::class.java,
         RecallDatabase.DB_NAME
-    ).addMigrations(RecallDatabase.MIGRATION_1_2).build()
+    ).addMigrations(RecallDatabase.MIGRATION_1_2, RecallDatabase.MIGRATION_2_3).build()
 
     val dao = database.recallDao()
 

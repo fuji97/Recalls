@@ -50,4 +50,27 @@ interface RecallDao {
 
     @Query("SELECT MAX(lastSuccessAt) FROM source_state")
     fun observeLastSuccess(): Flow<Long?>
+
+    @Query(
+        "SELECT id, remoteId, publishedAt FROM recalls WHERE source = :source AND publishedAt >= :from " +
+            "AND id NOT IN (SELECT recallId FROM sg_barcodes) ORDER BY publishedAt DESC"
+    )
+    suspend fun unindexed(source: RecallSource, from: Long): List<SgIndexCandidate>
+
+    @Query(
+        "SELECT COUNT(*) FROM recalls WHERE source = :source AND publishedAt >= :from " +
+            "AND id NOT IN (SELECT recallId FROM sg_barcodes)"
+    )
+    fun observeUnindexedCount(source: RecallSource, from: Long): Flow<Int>
+
+    @Upsert
+    suspend fun upsertBarcodes(rows: List<SgBarcodeEntity>)
+
+    @Query(
+        "SELECT r.* FROM recalls r INNER JOIN sg_barcodes b ON b.recallId = r.id " +
+            "WHERE b.codes LIKE '%' || :key || '%' ORDER BY r.publishedAt DESC, r.id"
+    )
+    fun observeByBarcode(key: String): Flow<List<RecallEntity>>
 }
+
+data class SgIndexCandidate(val id: String, val remoteId: String, val publishedAt: Long)

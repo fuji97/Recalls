@@ -68,6 +68,18 @@
     <string name="detail_attribution_eu">Source: European Commission – Safety Gate, CC BY 4.0</string>
     <string name="detail_attribution_it">Source: Ministero della Salute – salute.gov.it, CC BY 4.0</string>
 
+    <!-- Scan screen -->
+    <string name="action_scan_barcode">Scan barcode</string>
+    <string name="scan_title">Scan barcode</string>
+    <string name="scan_hint">Point the camera at the product\'s barcode</string>
+    <string name="scan_camera_permission_needed">Camera access is needed to scan barcodes.</string>
+    <string name="scan_allow_camera">Allow camera</string>
+    <string name="scan_open_settings">Open settings</string>
+    <string name="scan_barcode_value">Barcode %1$s</string>
+    <string name="scan_no_match">No EU recall found for this barcode</string>
+    <string name="scan_no_match_note">Only EU Safety Gate alerts (non-food products) from the last 90 days list barcodes. Italian food recalls don\'t include barcodes: search the list by brand or product name instead.</string>
+    <string name="scan_again">Scan again</string>
+
     <!-- Settings screen -->
     <string name="settings_title">Settings</string>
     <string name="settings_check_interval_title">Check for new recalls</string>
@@ -126,5 +138,13 @@
     <plurals name="notif_many_it">
         <item quantity="one">%1$d new recall in Italy</item>
         <item quantity="other">%1$d new recalls in Italy</item>
+    </plurals>
+    <plurals name="scan_matches">
+        <item quantity="one">%1$d EU recall matches this barcode</item>
+        <item quantity="other">%1$d EU recalls match this barcode</item>
+    </plurals>
+    <plurals name="scan_index_incomplete">
+        <item quantity="one">Barcodes for %1$d recent EU alert haven\'t been downloaded yet, so results may be incomplete.</item>
+        <item quantity="other">Barcodes for %1$d recent EU alerts haven\'t been downloaded yet, so results may be incomplete.</item>
     </plurals>
 </resources>

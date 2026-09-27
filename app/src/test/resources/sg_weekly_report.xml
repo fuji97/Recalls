@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<notificationsList>
+    <notifications>
+        <reference>https://ec.europa.eu/safety-gate-alerts/screen/webReport/alertDetail/10118911</reference>
+        <barcode><![CDATA[5908275105350]]></barcode>
+    </notifications>
+    <notifications>
+        <reference>https://ec.europa.eu/safety-gate-alerts/screen/webReport/alertDetail/10118967</reference>
+        <barcode><![CDATA[87185463409328718546348440]]></barcode>
+    </notifications>
+    <notifications>
+        <reference>https://ec.europa.eu/safety-gate-alerts/screen/webReport/alertDetail/10118884</reference>
+        <barcode><![CDATA[]]></barcode>
+    </notifications>
+    <notifications>
+        <reference>SR/09876/26</reference>
+        <barcode><![CDATA[1234567890123]]></barcode>
+    </notifications>
+</notificationsList>

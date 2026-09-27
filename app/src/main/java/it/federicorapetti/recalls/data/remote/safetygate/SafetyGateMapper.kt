@@ -40,3 +40,16 @@ fun SgNotification.toContent(lang: String): RecallContent {
         isRevocation = false
     )
 }
+
+private const val MIN_STORED_BARCODE_DIGITS = 8
+private const val MIN_BARCODE_KEY_DIGITS = 7
+
+/** Each raw entry reduced to its digits; entries shorter than 8 digits dropped; joined with a space. "" when none. */
+fun normalizeBarcodes(raw: List<String>): String =
+    raw.map { entry -> entry.filter(Char::isDigit) }
+        .filter { it.length >= MIN_STORED_BARCODE_DIGITS }
+        .joinToString(" ")
+
+/** Lookup key for a scanned code: digits only, leading zeros removed; null when fewer than 7 digits remain. */
+fun barcodeSearchKey(scanned: String): String? =
+    scanned.filter(Char::isDigit).trimStart('0').takeIf { it.length >= MIN_BARCODE_KEY_DIGITS }

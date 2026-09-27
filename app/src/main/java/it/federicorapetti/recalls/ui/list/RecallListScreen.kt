@@ -36,10 +36,10 @@ import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedIconToggleButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SnackbarHost
@@ -77,11 +77,13 @@ import java.time.format.DateTimeFormatter
 fun RecallListScreen(
     viewModel: RecallListViewModel,
     onOpenDetail: (String) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenScanner: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val permissionAsked by viewModel.notifPermissionAsked.collectAsStateWithLifecycle(initialValue = true)
     val context = LocalContext.current
+    val hasCamera = remember { context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY) }
     val topAppBarScrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val floatingToolbarScrollBehavior =
         FloatingToolbarDefaults.exitAlwaysScrollBehavior(FloatingToolbarExitDirection.Bottom)
@@ -123,6 +125,14 @@ fun RecallListScreen(
                     title = { Text(stringResource(R.string.list_title)) },
                     subtitle = { Text(stringResource(R.string.list_subtitle_updated, formatLastSync(uiState.lastSync))) },
                     actions = {
+                        if (hasCamera) {
+                            IconButton(onClick = onOpenScanner) {
+                                Icon(
+                                    painterResource(R.drawable.ic_barcode_scanner),
+                                    contentDescription = stringResource(R.string.action_scan_barcode)
+                                )
+                            }
+                        }
                         IconButton(onClick = viewModel::markAllRead) {
                             Icon(
                                 painterResource(R.drawable.ic_done_all),
@@ -220,7 +230,7 @@ fun RecallListScreen(
                         }
                     }
                 )
-                OutlinedIconToggleButton(
+                IconToggleButton(
                     checked = uiState.unreadOnly,
                     onCheckedChange = viewModel::setUnreadOnly,
                     modifier = Modifier.size(IconButtonDefaults.mediumContainerSize())

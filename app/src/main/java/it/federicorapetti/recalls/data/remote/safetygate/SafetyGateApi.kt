@@ -60,10 +60,28 @@ class SafetyGateApi(private val client: OkHttpClient) {
         }
     }
 
+    suspend fun weeklyReportList(): List<SgWeeklyReportRef> {
+        val request = Request.Builder().url(WEEKLY_REPORT_LIST_URL).get().build()
+        return client.execute(request) { response ->
+            if (!response.isSuccessful) throw HttpStatusException(response.code)
+            SafetyGateWeeklyReportParser.parseList(response.body.byteStream())
+        }
+    }
+
+    suspend fun weeklyReportBarcodes(url: String): Map<String, String> {
+        val request = Request.Builder().url(url).get().build()
+        return client.execute(request) { response ->
+            if (!response.isSuccessful) throw HttpStatusException(response.code)
+            SafetyGateWeeklyReportParser.parseBarcodes(response.body.byteStream())
+        }
+    }
+
     companion object {
         private const val BASE_URL = "https://ec.europa.eu/safety-gate-alerts/public/api"
         private const val SEARCH_URL = "$BASE_URL/search"
         private const val NOTIFICATION_URL = "$BASE_URL/notification"
+        private const val WEEKLY_REPORT_LIST_URL =
+            "https://ec.europa.eu/safety-gate-alerts/api/download/weeklyReport/list/xml/en"
         private val JSON_MEDIA_TYPE = "application/json".toMediaType()
 
         fun thumbnailUrl(photoId: Long): String = "$NOTIFICATION_URL/thumbnail/$photoId"

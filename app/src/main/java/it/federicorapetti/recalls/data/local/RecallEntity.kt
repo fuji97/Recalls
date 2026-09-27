@@ -57,3 +57,13 @@ data class SourceStateEntity(
     val etag: String?,
     val lastSuccessAt: Long?
 )
+
+/**
+ * Normalized barcodes of one Safety Gate alert (see [it.federicorapetti.recalls.data.remote.safetygate.normalizeBarcodes]);
+ * a row with [codes] = "" means "indexed, no barcodes".
+ */
+@Entity(tableName = "sg_barcodes")
+data class SgBarcodeEntity(
+    @PrimaryKey val recallId: String, // RecallEntity.id, e.g. "SG:10118951"
+    val codes: String
+)

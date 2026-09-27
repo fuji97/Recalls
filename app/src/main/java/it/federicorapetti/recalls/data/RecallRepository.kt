@@ -5,11 +5,14 @@ import it.federicorapetti.recalls.data.local.RecallContent
 import it.federicorapetti.recalls.data.local.RecallDao
 import it.federicorapetti.recalls.data.local.RecallDatabase
 import it.federicorapetti.recalls.data.local.RecallEntity
+import it.federicorapetti.recalls.data.local.SgBarcodeEntity
 import it.federicorapetti.recalls.data.local.SourceStateEntity
 import it.federicorapetti.recalls.data.model.RecallSource
 import it.federicorapetti.recalls.data.remote.safetygate.SG_MAX_PARALLEL_REQUESTS
 import it.federicorapetti.recalls.data.remote.safetygate.SafetyGateApi
 import it.federicorapetti.recalls.data.remote.safetygate.SgDetail
+import it.federicorapetti.recalls.data.remote.safetygate.barcodeSearchKey
+import it.federicorapetti.recalls.data.remote.safetygate.normalizeBarcodes
 import it.federicorapetti.recalls.data.remote.safetygate.sgPagePlan
 import it.federicorapetti.recalls.data.remote.safetygate.toContent
 import it.federicorapetti.recalls.data.remote.salute.MinistryRssItem
@@ -29,6 +32,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
@@ -136,7 +140,85 @@ class RecallRepository(
             .filter { it.publishedAt >= stopAt }
             .distinctBy { it.id }
             .toList()
-        return store(RecallSource.SAFETY_GATE, kept)
+        val result = store(RecallSource.SAFETY_GATE, kept)
+        try {
+            indexBarcodes(historyStart, lang)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            android.util.Log.e("RecallRepository", "Safety Gate barcode indexing failed", e)
+        }
+        return result
+    }
+
+    /**
+     * Builds the local Safety Gate barcode index (see [SgBarcodeEntity]) for alerts stored within
+     * [historyStart]. Above [SG_WEEKLY_REPORT_THRESHOLD] pending alerts, the official weekly XML
+     * reports are used first (cheap, but missing the newest ~2 days and alphanumeric codes); the
+     * remainder falls back to per-alert detail requests, capped at [SG_DETAIL_INDEX_LIMIT] per sync.
+     * Failures are isolated per report/detail fetch so a partial index is still saved.
+     */
+    private suspend fun indexBarcodes(historyStart: Long, lang: String) {
+        var pending = dao.unindexed(RecallSource.SAFETY_GATE, historyStart)
+        if (pending.isEmpty()) return
+
+        var weeklyCount = 0
+        if (pending.size > SG_WEEKLY_REPORT_THRESHOLD) {
+            val cutoff = pending.minOf { it.publishedAt } - ONE_DAY_MS
+            val reports = sgApi.weeklyReportList().filter { ref ->
+                val date = runCatching { parseItalianDate(ref.publicationDate) }.getOrNull()
+                date != null && date >= cutoff
+            }
+            val reportPermits = Semaphore(SG_MAX_PARALLEL_REQUESTS)
+            val maps = coroutineScope {
+                reports.map { ref ->
+                    async {
+                        try {
+                            reportPermits.withPermit { sgApi.weeklyReportBarcodes(ref.url) }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            android.util.Log.w("RecallRepository", "Weekly report failed: ${ref.url}", e)
+                            emptyMap()
+                        }
+                    }
+                }.awaitAll()
+            }
+            val byRemoteId = mutableMapOf<String, String>()
+            maps.forEach { byRemoteId.putAll(it) }
+            val rows = pending.mapNotNull { candidate ->
+                byRemoteId[candidate.remoteId]?.let { text ->
+                    SgBarcodeEntity(candidate.id, normalizeBarcodes(listOf(text)))
+                }
+            }
+            if (rows.isNotEmpty()) dao.upsertBarcodes(rows)
+            weeklyCount = rows.size
+            pending = pending.filterNot { it.remoteId in byRemoteId }
+        }
+
+        val toFetch = pending.take(SG_DETAIL_INDEX_LIMIT)
+        val detailPermits = Semaphore(SG_MAX_PARALLEL_REQUESTS)
+        val detailRows = coroutineScope {
+            toFetch.map { candidate ->
+                async {
+                    try {
+                        val detail = detailPermits.withPermit { sgApi.detail(candidate.remoteId.toLong(), lang) }
+                        SgBarcodeEntity(candidate.id, normalizeBarcodes(detail.product.barcodes.mapNotNull { it.barcode }))
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        null
+                    }
+                }
+            }.awaitAll()
+        }.filterNotNull()
+        if (detailRows.isNotEmpty()) dao.upsertBarcodes(detailRows)
+
+        val stillPending = pending.size - toFetch.size
+        android.util.Log.i(
+            "RecallRepository",
+            "Barcode index: weekly=$weeklyCount detail=${detailRows.size} stillPending=$stillPending"
+        )
     }
 
     private suspend fun syncItOperator(historyStart: Long): List<RecallEntity> {
@@ -238,10 +320,19 @@ class RecallRepository(
     suspend fun safetyGateDetail(remoteId: String): SgDetail =
         sgApi.detail(remoteId.toLong(), SafetyGateApi.contentLanguage())
 
+    fun observeByBarcode(scanned: String): Flow<List<RecallEntity>> =
+        barcodeSearchKey(scanned)?.let(dao::observeByBarcode) ?: flowOf(emptyList())
+
+    fun observeUnindexedBarcodeCount(): Flow<Int> =
+        dao.observeUnindexedCount(RecallSource.SAFETY_GATE, System.currentTimeMillis() - HISTORY_WINDOW_MS)
+
     companion object {
         private const val HISTORY_WINDOW_MS = 90L * 24 * 60 * 60 * 1000
         private const val TWO_DAYS_MS = 2L * 24 * 60 * 60 * 1000
+        private const val ONE_DAY_MS = 24L * 60 * 60 * 1000
         private const val PROGRESS_STARTED = 0.1f
         private const val PROGRESS_FETCHED = 0.9f
+        private const val SG_WEEKLY_REPORT_THRESHOLD = 40
+        private const val SG_DETAIL_INDEX_LIMIT = 150
     }
 }
