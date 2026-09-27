@@ -12,7 +12,7 @@
     <string name="filter_all">Tutti</string>
     <string name="filter_eu">UE</string>
     <string name="filter_it">Italia</string>
-    <string name="filter_unread">Solo non letti</string>
+    <string name="filter_unread">Non letti</string>
     <string name="today">Oggi</string>
     <string name="yesterday">Ieri</string>
     <string name="error_sync_failed">Aggiornamento non riuscito: %1$s</string>

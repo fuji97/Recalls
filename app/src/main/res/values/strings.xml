@@ -12,7 +12,8 @@
     <string name="filter_all">All</string>
     <string name="filter_eu">EU</string>
     <string name="filter_it">Italy</string>
-    <string name="filter_unread">Unread only</string>
+    <string name="filter_unread">Unread</string>
+    <string name="sync_in_progress">Checking for new recalls… %1$d%%</string>
     <string name="today">Today</string>
     <string name="yesterday">Yesterday</string>
     <string name="error_sync_failed">Couldn\'t update: %1$s</string>

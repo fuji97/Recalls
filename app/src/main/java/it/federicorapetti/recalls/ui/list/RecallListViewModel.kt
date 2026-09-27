@@ -9,6 +9,7 @@ import it.federicorapetti.recalls.data.remote.salute.ROME
 import it.federicorapetti.recalls.data.settings.SettingsRepository
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +25,8 @@ data class RecallListUiState(
     val filter: SourceFilter = SourceFilter.ALL,
     val query: String = "",
     val unreadOnly: Boolean = false,
-    val isRefreshing: Boolean = false,
+    val unreadCounts: Map<SourceFilter, Int> = emptyMap(),
+    val syncProgress: Float? = null,
     val lastSync: Long? = null,
     val error: String? = null
 )
@@ -39,8 +41,8 @@ class RecallListViewModel(
     private val filter = MutableStateFlow(SourceFilter.ALL)
     private val query = MutableStateFlow("")
     private val unreadOnly = MutableStateFlow(false)
-    private val isRefreshing = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
+    private var refreshJob: Job? = null
 
     private val filterState = combine(filter, query, unreadOnly) { f, q, u -> FilterState(f, q, u) }
 
@@ -48,15 +50,16 @@ class RecallListViewModel(
         repository.observeAll(),
         filterState,
         repository.observeLastSync(),
-        isRefreshing,
+        repository.syncProgress,
         error
-    ) { all, fs, lastSync, refreshing, err ->
+    ) { all, fs, lastSync, progress, err ->
         RecallListUiState(
             groups = buildGroups(all, fs),
             filter = fs.filter,
             query = fs.query,
             unreadOnly = fs.unreadOnly,
-            isRefreshing = refreshing,
+            unreadCounts = unreadCounts(all),
+            syncProgress = progress,
             lastSync = lastSync,
             error = err
         )
@@ -98,15 +101,14 @@ class RecallListViewModel(
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            isRefreshing.value = true
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
             val result = repository.sync()
             error.value = if (result.errors.isNotEmpty()) {
                 result.errors.keys.joinToString(", ") { it.name }
             } else {
                 null
             }
-            isRefreshing.value = false
         }
     }
 
@@ -120,6 +122,11 @@ class RecallListViewModel(
         return filtered
             .groupBy { Instant.ofEpochMilli(it.publishedAt).atZone(ROME).toLocalDate() }
             .map { (date, items) -> RecallDayGroup(date, items) }
+    }
+
+    private fun unreadCounts(all: List<RecallEntity>): Map<SourceFilter, Int> {
+        val unread = all.filter { it.isNew && !it.isRead }
+        return SourceFilter.entries.associateWith { f -> unread.count { matchesFilter(it, f) } }
     }
 
     private fun matchesFilter(entity: RecallEntity, filter: SourceFilter): Boolean = when (filter) {

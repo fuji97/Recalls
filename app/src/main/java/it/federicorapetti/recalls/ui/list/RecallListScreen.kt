@@ -1,19 +1,31 @@
 package it.federicorapetti.recalls.ui.list
 
 import android.Manifest
+import androidx.annotation.StringRes
 import android.content.pm.PackageManager
 import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Badge
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
 import androidx.compose.material3.FabPosition
@@ -23,9 +35,11 @@ import androidx.compose.material3.FloatingToolbarScrollBehavior
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconToggleButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SnackbarHost
@@ -33,7 +47,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -43,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -101,34 +118,70 @@ fun RecallListScreen(
             .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection)
             .nestedScroll(floatingToolbarScrollBehavior),
         topBar = {
-            LargeFlexibleTopAppBar(
-                title = { Text(stringResource(R.string.list_title)) },
-                subtitle = { Text(stringResource(R.string.list_subtitle_updated, formatLastSync(uiState.lastSync))) },
-                actions = {
-                    IconButton(onClick = viewModel::markAllRead) {
-                        Icon(
-                            painterResource(R.drawable.ic_done_all),
-                            contentDescription = stringResource(R.string.action_mark_all_read)
+            Column {
+                LargeFlexibleTopAppBar(
+                    title = { Text(stringResource(R.string.list_title)) },
+                    subtitle = { Text(stringResource(R.string.list_subtitle_updated, formatLastSync(uiState.lastSync))) },
+                    actions = {
+                        IconButton(onClick = viewModel::markAllRead) {
+                            Icon(
+                                painterResource(R.drawable.ic_done_all),
+                                contentDescription = stringResource(R.string.action_mark_all_read)
+                            )
+                        }
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(
+                                painterResource(R.drawable.ic_settings),
+                                contentDescription = stringResource(R.string.action_settings)
+                            )
+                        }
+                    },
+                    scrollBehavior = topAppBarScrollBehavior
+                )
+                val syncProgress = uiState.syncProgress
+                AnimatedVisibility(
+                    visible = syncProgress != null,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    val animatedProgress by animateFloatAsState(
+                        targetValue = syncProgress ?: 1f,
+                        animationSpec = WavyProgressIndicatorDefaults.ProgressAnimationSpec,
+                        label = "syncProgress"
+                    )
+                    val appBarColors = TopAppBarDefaults.topAppBarColors()
+                    val headerBackground = lerp(
+                        appBarColors.containerColor,
+                        appBarColors.scrolledContainerColor,
+                        FastOutLinearInEasing.transform(topAppBarScrollBehavior.state.collapsedFraction)
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(headerBackground)
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                    ) {
+                        LinearWavyProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.sync_in_progress, (animatedProgress * 100).toInt()),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = appBarColors.subtitleContentColor
                         )
                     }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            painterResource(R.drawable.ic_settings),
-                            contentDescription = stringResource(R.string.action_settings)
-                        )
-                    }
-                },
-                scrollBehavior = topAppBarScrollBehavior
-            )
+                }
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButtonPosition = FabPosition.Center,
         floatingActionButton = {
-            RecallListToolbar(
+            SourceFilterToolbar(
                 filter = uiState.filter,
                 onFilterChange = viewModel::setFilter,
-                unreadOnly = uiState.unreadOnly,
-                onUnreadOnlyChange = viewModel::setUnreadOnly,
+                unreadCounts = uiState.unreadCounts,
                 scrollBehavior = floatingToolbarScrollBehavior
             )
         }
@@ -138,47 +191,63 @@ fun RecallListScreen(
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            SearchBarDefaults.InputField(
-                query = uiState.query,
-                onQueryChange = viewModel::setQuery,
-                onSearch = {},
-                expanded = false,
-                onExpandedChange = {},
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text(stringResource(R.string.search_hint)) },
-                leadingIcon = {
-                    Icon(painterResource(R.drawable.ic_search), contentDescription = null)
-                },
-                trailingIcon = {
-                    if (uiState.query.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.setQuery("") }) {
-                            Icon(
-                                painterResource(R.drawable.ic_close),
-                                contentDescription = stringResource(R.string.action_clear_search)
-                            )
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SearchBarDefaults.InputField(
+                    query = uiState.query,
+                    onQueryChange = viewModel::setQuery,
+                    onSearch = {},
+                    expanded = false,
+                    onExpandedChange = {},
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text(stringResource(R.string.search_hint)) },
+                    leadingIcon = {
+                        Icon(painterResource(R.drawable.ic_search), contentDescription = null)
+                    },
+                    trailingIcon = {
+                        if (uiState.query.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.setQuery("") }) {
+                                Icon(
+                                    painterResource(R.drawable.ic_close),
+                                    contentDescription = stringResource(R.string.action_clear_search)
+                                )
+                            }
                         }
                     }
+                )
+                OutlinedIconToggleButton(
+                    checked = uiState.unreadOnly,
+                    onCheckedChange = viewModel::setUnreadOnly,
+                    modifier = Modifier.size(IconButtonDefaults.mediumContainerSize())
+                ) {
+                    Icon(
+                        painterResource(R.drawable.ic_mark_email_unread),
+                        contentDescription = stringResource(R.string.filter_unread)
+                    )
                 }
-            )
+            }
 
             val pullState = rememberPullToRefreshState()
             PullToRefreshBox(
-                isRefreshing = uiState.isRefreshing,
+                isRefreshing = false,
                 onRefresh = viewModel::refresh,
                 state = pullState,
                 indicator = {
                     PullToRefreshDefaults.LoadingIndicator(
                         state = pullState,
-                        isRefreshing = uiState.isRefreshing,
+                        isRefreshing = false,
                         modifier = Modifier.align(Alignment.TopCenter)
                     )
                 },
                 modifier = Modifier.fillMaxSize()
             ) {
                 when {
-                    uiState.groups.isEmpty() && uiState.isRefreshing -> {
+                    uiState.groups.isEmpty() && uiState.syncProgress != null -> {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             ContainedLoadingIndicator()
                         }
@@ -215,38 +284,47 @@ fun RecallListScreen(
 }
 
 @Composable
-private fun RecallListToolbar(
+private fun SourceFilterToolbar(
     filter: SourceFilter,
     onFilterChange: (SourceFilter) -> Unit,
-    unreadOnly: Boolean,
-    onUnreadOnlyChange: (Boolean) -> Unit,
+    unreadCounts: Map<SourceFilter, Int>,
     scrollBehavior: FloatingToolbarScrollBehavior
 ) {
-    HorizontalFloatingToolbar(
-        expanded = true,
-        scrollBehavior = scrollBehavior
+    HorizontalFloatingToolbar(expanded = true, scrollBehavior = scrollBehavior) {
+        SourceToggle(
+            SourceFilter.ALL, R.string.filter_all, filter, onFilterChange, unreadCounts,
+            ButtonGroupDefaults.connectedLeadingButtonShapes()
+        )
+        SourceToggle(
+            SourceFilter.EU, R.string.filter_eu, filter, onFilterChange, unreadCounts,
+            ButtonGroupDefaults.connectedMiddleButtonShapes()
+        )
+        SourceToggle(
+            SourceFilter.IT, R.string.filter_it, filter, onFilterChange, unreadCounts,
+            ButtonGroupDefaults.connectedTrailingButtonShapes()
+        )
+    }
+}
+
+@Composable
+private fun SourceToggle(
+    value: SourceFilter,
+    @StringRes label: Int,
+    selected: SourceFilter,
+    onSelect: (SourceFilter) -> Unit,
+    unreadCounts: Map<SourceFilter, Int>,
+    shapes: ToggleButtonShapes
+) {
+    val count = unreadCounts[value] ?: 0
+    ToggleButton(
+        checked = selected == value,
+        onCheckedChange = { if (it) onSelect(value) },
+        shapes = shapes
     ) {
-        ToggleButton(
-            checked = filter == SourceFilter.ALL,
-            onCheckedChange = { if (it) onFilterChange(SourceFilter.ALL) },
-            shapes = ButtonGroupDefaults.connectedLeadingButtonShapes()
-        ) { Text(stringResource(R.string.filter_all)) }
-        ToggleButton(
-            checked = filter == SourceFilter.EU,
-            onCheckedChange = { if (it) onFilterChange(SourceFilter.EU) },
-            shapes = ButtonGroupDefaults.connectedMiddleButtonShapes()
-        ) { Text(stringResource(R.string.filter_eu)) }
-        ToggleButton(
-            checked = filter == SourceFilter.IT,
-            onCheckedChange = { if (it) onFilterChange(SourceFilter.IT) },
-            shapes = ButtonGroupDefaults.connectedTrailingButtonShapes()
-        ) { Text(stringResource(R.string.filter_it)) }
-        Spacer(Modifier.width(8.dp))
-        IconToggleButton(checked = unreadOnly, onCheckedChange = onUnreadOnlyChange) {
-            Icon(
-                painterResource(R.drawable.ic_notifications),
-                contentDescription = stringResource(R.string.filter_unread)
-            )
+        Text(stringResource(label))
+        if (count > 0) {
+            Spacer(Modifier.width(6.dp))
+            Badge { Text(if (count > 99) "99+" else count.toString()) }
         }
     }
 }
