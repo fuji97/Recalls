@@ -17,10 +17,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 class SafetyGateApi(private val client: OkHttpClient) {
 
-    suspend fun search(years: List<Int>, page: Int, lang: String): SgPage {
+    suspend fun search(years: List<Int>, publishedFromMs: Long, page: Int, pageSize: Int, lang: String): SgPage {
         val body = buildJsonObject {
             putJsonObject("criteria") {
                 putJsonArray("year") { years.forEach { add(it) } }
+                // Epoch millis as a JSON string (inclusive); a JSON number makes the endpoint return 405.
+                put("publicationDateFrom", publishedFromMs.toString())
             }
             put("searchCriteriaForNotification", false)
             put("isLaunched", true)
@@ -29,7 +31,7 @@ class SafetyGateApi(private val client: OkHttpClient) {
                 put("sortField", "PUBLICATION_DATE")
                 put("sortOrder", "DESC")
                 put("totalElements", 0)
-                put("numberElements", 100)
+                put("numberElements", pageSize)
                 put("page", page)
             }
             put("fullTextSearch", "")

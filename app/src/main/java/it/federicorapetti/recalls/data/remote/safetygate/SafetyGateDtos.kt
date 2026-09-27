@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SgPage(
     val content: List<SgNotification> = emptyList(),
-    val last: Boolean = true
+    val totalElements: Int = 0
 )
 @Serializable
 data class SgNotification(
