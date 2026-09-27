@@ -1,0 +1,36 @@
+# git-cliff config: GitHub release notes for the tag being released.
+# Only feat/fix/perf and `type!:` breaking commits are listed; everything else is omitted.
+[changelog]
+header = ""
+body = """
+{%- for group, commits in commits | group_by(attribute="group") -%}
+### {{ group | striptags | trim }}
+
+{% for commit in commits -%}
+- {% if commit.scope %}**{{ commit.scope }}:** {% endif %}{{ commit.message | upper_first }}
+{% endfor -%}
+{% if not loop.last %}
+{% endif -%}
+{% endfor -%}
+{%- if previous and previous.version %}
+**Full Changelog**: https://github.com/fuji97/Recalls/compare/{{ previous.version }}...{{ version }}
+{%- endif %}
+"""
+footer = ""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+protect_breaking_commits = false
+filter_commits = false
+tag_pattern = '^v[0-9]+\.[0-9]+\.[0-9]+$'
+sort_commits = "oldest"
+commit_parsers = [
+  { message = '^[a-z]+(\([^)]*\))?!:', group = "<!-- 0 -->Breaking Changes" },
+  { message = '^feat', group = "<!-- 1 -->Features" },
+  { message = '^fix', group = "<!-- 2 -->Bug Fixes" },
+  { message = '^perf', group = "<!-- 3 -->Performance" },
+  { message = '.*', skip = true },
+]

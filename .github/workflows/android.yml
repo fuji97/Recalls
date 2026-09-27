@@ -77,6 +77,24 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          version: v2.14.2
+          config: cliff.toml
+          args: --current --strip all
+        env:
+          OUTPUT: RELEASE_NOTES.md
+
+      - name: Require non-empty release notes
+        run: |
+          if ! grep -q '^### ' RELEASE_NOTES.md; then
+            echo "::error::No feat/fix/perf or breaking (type!:) commits since the previous tag; refusing to publish an empty changelog."
+            exit 1
+          fi
 
       - uses: actions/setup-java@v4
         with:
@@ -129,4 +147,4 @@ jobs:
         with:
           name: Recalls ${{ steps.version.outputs.name }}
           files: dist/Recalls-${{ steps.version.outputs.name }}.apk
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md

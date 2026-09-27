@@ -51,7 +51,7 @@ gradlew.bat clean :app:assembleDebug        # clean rebuild (use after dependenc
 gradlew.bat :app:testDebugUnitTest :app:assembleDebug   # both in one invocation
 ```
 
-No lint/format tooling is configured (no `.editorconfig`, no ktlint/detekt, no CI). `kotlin.code.style=official` is set in `gradle.properties`; match existing formatting by hand.
+No lint/format tooling is configured (no `.editorconfig`, no ktlint/detekt). `kotlin.code.style=official` is set in `gradle.properties`; match existing formatting by hand.
 
 Manual device/emulator smoke test: install the debug APK, launch, grant the notification permission, verify EU + Italy cards load with thumbnails, exercise the source filter toolbar and a detail screen. See `docs/MANUAL_TESTING.md` for the full scripted checklist (including sqlite3-based new-item/notification testing).
 
@@ -110,7 +110,10 @@ Callers pass a `block` that does the streaming JSON decode (`AppJson.decodeFromS
 - **Compose BOM:** `compose-bom-alpha:2026.09.01` (not the stable `compose-bom`) — this is what supplies `material3 1.5.0-alpha29` with `ExperimentalMaterial3ExpressiveApi`. Do not swap back to the stable BOM; Expressive components aren't there.
 - **Compiler opt-ins** are set module-wide in `app/build.gradle.kts` via `kotlin { compilerOptions { optIn.addAll(...) } }`: `ExperimentalMaterial3Api`, `ExperimentalMaterial3ExpressiveApi`, `kotlinx.serialization.ExperimentalSerializationApi`. No per-file `@OptIn` needed for these three.
 - **No package manager beyond Gradle** — this is a single-module Android app (`:app`), no npm/pip/etc. involved.
-- **No CI, no lint config, no README** — `AGENTS.md` (this file) is the primary contributor-facing doc besides `docs/`.
+- **No lint config, no README** — `AGENTS.md` (this file) is the primary contributor-facing doc besides `docs/`. CI is `.github/workflows/android.yml` (GitHub Actions): unit tests + debug APK build on every push/PR to `main`, plus a signed release APK published to a GitHub Release on `v*.*.*` tags.
+
+### Releases & changelog
+Release notes on tag push come from `cliff.toml` (git-cliff) via the `release` job in `.github/workflows/android.yml` — not GitHub's auto-generated notes, and not a committed `CHANGELOG.md`. Only `feat`, `fix`, `perf`, and `type!:`/`type(scope)!:` (breaking) Conventional Commits appear, grouped as Features / Bug Fixes / Performance / Breaking Changes; everything else (chore/ci/build/docs/test/refactor/style, non-conventional messages) is silently omitted by design — there's no commit-message enforcement, so not every commit needs a changelog-worthy message. If no commit since the previous tag matches, the release job fails before building rather than publishing an empty changelog. Preview locally before tagging: `npx --yes git-cliff@2.14.2 --unreleased --tag vX.Y.Z --strip all`.
 
 ## Testing & QA
 - **Framework:** JUnit 4 (`junit:4.13.2`), pure-JVM unit tests only. No Robolectric, no instrumented tests currently implemented (`app/src/androidTest/.../` exists but is empty, despite Espresso/Compose-UI-test dependencies being present in `app/build.gradle.kts`).
