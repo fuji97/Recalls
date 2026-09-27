@@ -93,9 +93,13 @@ private const val SLIDE_DURATION_MS = 350
 private val slideSpec: FiniteAnimationSpec<IntOffset> =
     tween(durationMillis = SLIDE_DURATION_MS, easing = FastOutSlowInEasing)
 
-// Linear so the page tracks the finger 1:1 while the predictive-back gesture seeks the transition.
+// Linear so the page tracks the finger 1:1 while dragging (NavDisplay maps raw gesture progress
+// to this spec's fraction). The *duration* here only governs the release/settle catch-up
+// animation (NavDisplay.kt: `remainingDuration = (1 - fraction) * totalDuration`), so it's kept
+// short and independent of SLIDE_DURATION_MS to avoid a laggy trailing snap on a quick flick-back.
+private const val PREDICTIVE_SLIDE_DURATION_MS = 150
 private val predictiveSlideSpec: FiniteAnimationSpec<IntOffset> =
-    tween(durationMillis = SLIDE_DURATION_MS, easing = LinearEasing)
+    tween(durationMillis = PREDICTIVE_SLIDE_DURATION_MS, easing = LinearEasing)
 
 private fun slideForward(): ContentTransform =
     slideInHorizontally(slideSpec) { fullWidth -> fullWidth } togetherWith
