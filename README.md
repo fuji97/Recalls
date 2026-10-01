@@ -7,8 +7,8 @@
   <img src="docs/cover-light.png" alt="Recalls — EU and Italian product-recall alerts, aggregated on your phone" width="100%" />
 </picture>
 
-[![Android CI](https://img.shields.io/github/actions/workflow/status/fuji97/Recalls/android.yml?branch=main&style=flat-square&label=CI)](https://github.com/fuji97/Recalls/actions/workflows/android.yml)
-[![Latest release](https://img.shields.io/github/v/release/fuji97/Recalls?style=flat-square)](https://github.com/fuji97/Recalls/releases/latest)
+[![Android CI](https://github.com/fuji97/Recalls/actions/workflows/android.yml/badge.svg?branch=main)](https://github.com/fuji97/Recalls/actions/workflows/android.yml)
+[![Latest release](https://img.shields.io/github/v/release/fuji97/Recalls?style=flat-square&cacheSeconds=43200)](https://github.com/fuji97/Recalls/releases/latest)
 ![Min SDK](https://img.shields.io/badge/minSdk-33-3c873a?style=flat-square)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.20-7f52ff?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Material 3 Expressive](https://img.shields.io/badge/Material%203-Expressive-6750A4?style=flat-square&logo=materialdesign&logoColor=white)](https://m3.material.io)
