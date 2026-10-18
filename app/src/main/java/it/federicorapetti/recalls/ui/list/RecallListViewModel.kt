@@ -3,12 +3,8 @@ package it.federicorapetti.recalls.ui.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.federicorapetti.recalls.data.RecallRepository
-import it.federicorapetti.recalls.data.local.RecallEntity
-import it.federicorapetti.recalls.data.model.RecallSource
-import it.federicorapetti.recalls.data.remote.salute.ROME
+import it.federicorapetti.recalls.data.RecallStore
 import it.federicorapetti.recalls.data.settings.SettingsRepository
-import java.time.Instant
-import java.time.LocalDate
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,47 +14,45 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class RecallDayGroup(val date: LocalDate, val items: List<RecallEntity>)
-
 data class RecallListUiState(
     val groups: List<RecallDayGroup> = emptyList(),
-    val filter: SourceFilter = SourceFilter.ALL,
+    val filter: RegionFilter = RegionFilter.ALL,
     val query: String = "",
     val unreadOnly: Boolean = false,
-    val unreadCounts: Map<SourceFilter, Int> = emptyMap(),
+    val unreadCounts: Map<RegionFilter, Int> = emptyMap(),
     val syncProgress: Float? = null,
     val lastSync: Long? = null,
     val error: String? = null
 )
 
-private data class FilterState(val filter: SourceFilter, val query: String, val unreadOnly: Boolean)
-
 class RecallListViewModel(
     private val repository: RecallRepository,
+    private val store: RecallStore,
     private val settings: SettingsRepository
 ) : ViewModel() {
 
-    private val filter = MutableStateFlow(SourceFilter.ALL)
+    private val filter = MutableStateFlow(RegionFilter.ALL)
     private val query = MutableStateFlow("")
     private val unreadOnly = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
     private var refreshJob: Job? = null
 
-    private val filterState = combine(filter, query, unreadOnly) { f, q, u -> FilterState(f, q, u) }
+    private val listQuery = combine(filter, query, unreadOnly) { f, q, u -> RecallListQuery(f, q, u) }
 
     val uiState: StateFlow<RecallListUiState> = combine(
-        repository.observeAll(),
-        filterState,
-        repository.observeLastSync(),
+        store.observeAll(),
+        listQuery,
+        store.observeLastSync(),
         repository.syncProgress,
         error
-    ) { all, fs, lastSync, progress, err ->
+    ) { all, q, lastSync, progress, err ->
+        val view = buildRecallListView(all, q)
         RecallListUiState(
-            groups = buildGroups(all, fs),
-            filter = fs.filter,
-            query = fs.query,
-            unreadOnly = fs.unreadOnly,
-            unreadCounts = unreadCounts(all),
+            groups = view.groups,
+            filter = q.filter,
+            query = q.text,
+            unreadOnly = q.unreadOnly,
+            unreadCounts = view.unreadCounts,
             syncProgress = progress,
             lastSync = lastSync,
             error = err
@@ -67,14 +61,14 @@ class RecallListViewModel(
 
     init {
         viewModelScope.launch {
-            val lastSync = repository.observeLastSync().first()
+            val lastSync = store.observeLastSync().first()
             if (lastSync == null || System.currentTimeMillis() - lastSync > ONE_HOUR_MS) {
                 refresh()
             }
         }
     }
 
-    fun setFilter(value: SourceFilter) {
+    fun setFilter(value: RegionFilter) {
         filter.value = value
     }
 
@@ -97,7 +91,7 @@ class RecallListViewModel(
     }
 
     fun markAllRead() {
-        viewModelScope.launch { repository.markAllRead() }
+        viewModelScope.launch { store.markAllRead() }
     }
 
     fun refresh() {
@@ -110,36 +104,6 @@ class RecallListViewModel(
                 null
             }
         }
-    }
-
-    private fun buildGroups(all: List<RecallEntity>, fs: FilterState): List<RecallDayGroup> {
-        val filtered = all.asSequence()
-            .filter { matchesFilter(it, fs.filter) }
-            .filter { !fs.unreadOnly || (it.isNew && !it.isRead) }
-            .filter { matchesQuery(it, fs.query) }
-            .toList()
-
-        return filtered
-            .groupBy { Instant.ofEpochMilli(it.publishedAt).atZone(ROME).toLocalDate() }
-            .map { (date, items) -> RecallDayGroup(date, items) }
-    }
-
-    private fun unreadCounts(all: List<RecallEntity>): Map<SourceFilter, Int> {
-        val unread = all.filter { it.isNew && !it.isRead }
-        return SourceFilter.entries.associateWith { f -> unread.count { matchesFilter(it, f) } }
-    }
-
-    private fun matchesFilter(entity: RecallEntity, filter: SourceFilter): Boolean = when (filter) {
-        SourceFilter.ALL -> true
-        SourceFilter.EU -> entity.source == RecallSource.SAFETY_GATE
-        SourceFilter.IT -> entity.source.isItaly
-    }
-
-    private fun matchesQuery(entity: RecallEntity, query: String): Boolean {
-        if (query.isBlank()) return true
-        val q = query.trim()
-        return listOfNotNull(entity.title, entity.subtitle, entity.brand, entity.reason)
-            .any { it.contains(q, ignoreCase = true) }
     }
 
     companion object {

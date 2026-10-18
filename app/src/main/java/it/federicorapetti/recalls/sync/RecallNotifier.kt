@@ -15,6 +15,8 @@ import it.federicorapetti.recalls.R
 import it.federicorapetti.recalls.data.local.RecallEntity
 import it.federicorapetti.recalls.data.model.RecallSource
 import it.federicorapetti.recalls.data.settings.SettingsRepository
+import it.federicorapetti.recalls.ui.list.RegionFilter
+import it.federicorapetti.recalls.ui.navigation.LaunchRequest
 import kotlinx.coroutines.flow.first
 
 class RecallNotifier(private val context: Context) {
@@ -44,7 +46,7 @@ class RecallNotifier(private val context: Context) {
                 items = euItems,
                 singleTitleRes = R.string.notif_new_eu,
                 manyTitle = context.resources.getQuantityString(R.plurals.notif_many_eu, euItems.size, euItems.size),
-                filterExtra = FILTER_EU
+                filter = RegionFilter.EU
             )
         }
         if (itItems.isNotEmpty() && settings.notifyIt.first()) {
@@ -55,7 +57,7 @@ class RecallNotifier(private val context: Context) {
                 items = itItems,
                 singleTitleRes = R.string.notif_new_it,
                 manyTitle = context.resources.getQuantityString(R.plurals.notif_many_it, itItems.size, itItems.size),
-                filterExtra = FILTER_IT
+                filter = RegionFilter.ITALY
             )
         }
     }
@@ -67,15 +69,11 @@ class RecallNotifier(private val context: Context) {
         items: List<RecallEntity>,
         singleTitleRes: Int,
         manyTitle: String,
-        filterExtra: String
+        filter: RegionFilter
     ) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            if (items.size == 1) {
-                putExtra(EXTRA_RECALL_ID, items.first().id)
-            } else {
-                putExtra(EXTRA_SOURCE_FILTER, filterExtra)
-            }
+            (if (items.size == 1) LaunchRequest.Detail(items.first().id) else LaunchRequest.Filter(filter)).writeTo(this)
         }
         val pendingIntent = PendingIntent.getActivity(
             context, requestCode, intent,
@@ -113,10 +111,6 @@ class RecallNotifier(private val context: Context) {
     companion object {
         const val CHANNEL_EU = "recalls_eu"
         const val CHANNEL_IT = "recalls_it"
-        const val EXTRA_RECALL_ID = "recall_id"
-        const val EXTRA_SOURCE_FILTER = "source_filter"
-        const val FILTER_EU = "EU"
-        const val FILTER_IT = "IT"
         private const val NOTIF_ID_EU = 1001
         private const val NOTIF_ID_IT = 1002
     }

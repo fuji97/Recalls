@@ -37,7 +37,7 @@ fun RecallsNavHost(
     onLaunchConsumed: () -> Unit
 ) {
     val backStack = rememberNavBackStack(RecallsListKey)
-    val listViewModel = viewModel { RecallListViewModel(container.repository, container.settings) }
+    val listViewModel = viewModel { RecallListViewModel(container.repository, container.store, container.settings) }
 
     val request by launchRequest.collectAsStateWithLifecycle()
     LaunchedEffect(request) {
@@ -72,7 +72,7 @@ fun RecallsNavHost(
             }
             entry<RecallDetailKey> { key ->
                 val detailViewModel = viewModel {
-                    RecallDetailViewModel(key.id, container.repository, container.appContext, container.httpClient)
+                    RecallDetailViewModel(key.id, container.store, container.repository, container.operatorPdfLoader)
                 }
                 RecallDetailScreen(
                     viewModel = detailViewModel,
@@ -81,7 +81,7 @@ fun RecallsNavHost(
             }
             entry<SettingsKey> {
                 val settingsViewModel = viewModel {
-                    SettingsViewModel(container.settings, container.scheduler, container.repository)
+                    SettingsViewModel(container.settings, container.scheduler, container.store)
                 }
                 SettingsScreen(
                     viewModel = settingsViewModel,
@@ -89,7 +89,7 @@ fun RecallsNavHost(
                 )
             }
             entry<ScanKey> {
-                val scanViewModel = viewModel { BarcodeScanViewModel(container.repository) }
+                val scanViewModel = viewModel { BarcodeScanViewModel(container.barcodeIndex) }
                 BarcodeScanScreen(
                     viewModel = scanViewModel,
                     onBack = { backStack.removeLastOrNull() },

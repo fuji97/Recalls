@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import it.federicorapetti.recalls.R
 import it.federicorapetti.recalls.data.local.RecallEntity
+import it.federicorapetti.recalls.data.local.isUnread
 import it.federicorapetti.recalls.data.model.RecallSource
 import it.federicorapetti.recalls.ui.common.riskLabel
 
@@ -81,7 +82,7 @@ fun RecallCard(item: RecallEntity, onClick: () -> Unit, modifier: Modifier = Mod
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                if (item.isNew && !item.isRead) {
+                if (item.isUnread) {
                     Badge()
                 }
             }

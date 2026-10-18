@@ -2,7 +2,7 @@ package it.federicorapetti.recalls.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import it.federicorapetti.recalls.data.RecallRepository
+import it.federicorapetti.recalls.data.RecallStore
 import it.federicorapetti.recalls.data.settings.SettingsRepository
 import it.federicorapetti.recalls.sync.SyncScheduler
 import kotlinx.coroutines.launch
@@ -10,13 +10,13 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     private val settings: SettingsRepository,
     private val scheduler: SyncScheduler,
-    repository: RecallRepository
+    store: RecallStore
 ) : ViewModel() {
 
     val intervalHours = settings.intervalHours
     val notifyEu = settings.notifyEu
     val notifyIt = settings.notifyIt
-    val lastSync = repository.observeLastSync()
+    val lastSync = store.observeLastSync()
 
     fun setIntervalHours(hours: Int) {
         viewModelScope.launch {

@@ -29,6 +29,9 @@ data class RecallEntity(
     @ColumnInfo(defaultValue = "0") val isRead: Boolean = false
 )
 
+/** GLOSSARY: Unread = New and not yet Read. */
+val RecallEntity.isUnread: Boolean get() = isNew && !isRead
+
 /**
  * Every [RecallEntity] column except [RecallEntity.isNew] / [RecallEntity.isRead].
  * Used as a partial entity for upserts so that sync never overwrites the read/new flags.
@@ -59,7 +62,7 @@ data class SourceStateEntity(
 )
 
 /**
- * Normalized barcodes of one Safety Gate alert (see [it.federicorapetti.recalls.data.remote.safetygate.normalizeBarcodes]);
+ * Normalized barcodes of one Safety Gate alert (see [it.federicorapetti.recalls.data.BarcodeIndex]);
  * a row with [codes] = "" means "indexed, no barcodes".
  */
 @Entity(tableName = "sg_barcodes")

@@ -2,10 +2,13 @@ package it.federicorapetti.recalls
 
 import android.content.Context
 import androidx.room.Room
+import it.federicorapetti.recalls.data.BarcodeIndex
 import it.federicorapetti.recalls.data.RecallRepository
+import it.federicorapetti.recalls.data.RecallStore
 import it.federicorapetti.recalls.data.local.RecallDatabase
 import it.federicorapetti.recalls.data.remote.buildHttpClient
 import it.federicorapetti.recalls.data.remote.safetygate.SafetyGateApi
+import it.federicorapetti.recalls.data.remote.salute.OperatorPdfLoader
 import it.federicorapetti.recalls.data.remote.salute.SaluteApi
 import it.federicorapetti.recalls.data.settings.SettingsRepository
 import it.federicorapetti.recalls.sync.RecallNotifier
@@ -28,7 +31,7 @@ class AppContainer(context: Context) {
         RecallDatabase.DB_NAME
     ).addMigrations(RecallDatabase.MIGRATION_1_2, RecallDatabase.MIGRATION_2_3).build()
 
-    val dao = database.recallDao()
+    val store = RecallStore(database)
 
     val settings = SettingsRepository(context)
 
@@ -36,7 +39,11 @@ class AppContainer(context: Context) {
 
     val saluteApi = SaluteApi(httpClient)
 
-    val repository = RecallRepository(database, dao, safetyGateApi, saluteApi)
+    val barcodeIndex = BarcodeIndex(database, safetyGateApi)
+
+    val repository = RecallRepository(store, barcodeIndex, safetyGateApi, saluteApi)
+
+    val operatorPdfLoader = OperatorPdfLoader(appContext, httpClient)
 
     val notifier = RecallNotifier(context)
 

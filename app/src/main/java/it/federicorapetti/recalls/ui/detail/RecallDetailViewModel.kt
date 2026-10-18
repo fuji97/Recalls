@@ -1,20 +1,17 @@
 package it.federicorapetti.recalls.ui.detail
 
-import android.content.Context
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.federicorapetti.recalls.data.RecallRepository
+import it.federicorapetti.recalls.data.RecallStore
 import it.federicorapetti.recalls.data.local.RecallEntity
 import it.federicorapetti.recalls.data.model.RecallSource
-import it.federicorapetti.recalls.data.remote.downloadTo
 import it.federicorapetti.recalls.data.remote.safetygate.SgDetail
 import it.federicorapetti.recalls.data.remote.salute.OperatorPdfFields
-import it.federicorapetti.recalls.data.remote.salute.OperatorPdfFieldsReader
-import it.federicorapetti.recalls.image.PdfPhotoExtractor
-import java.io.File
+import it.federicorapetti.recalls.data.remote.salute.OperatorPdfLoader
+import it.federicorapetti.recalls.data.remote.salute.OperatorPdfPart
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,8 +19,6 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
 
 sealed interface SgDetailState {
     data object Loading : SgDetailState
@@ -38,12 +33,12 @@ sealed interface PdfPhotosState {
 
 class RecallDetailViewModel(
     private val id: String,
+    private val store: RecallStore,
     private val repository: RecallRepository,
-    private val context: Context,
-    private val httpClient: OkHttpClient,
+    private val pdfLoader: OperatorPdfLoader
 ) : ViewModel() {
 
-    val item: StateFlow<RecallEntity?> = repository.observe(id)
+    val item: StateFlow<RecallEntity?> = store.observe(id)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _sgDetail = MutableStateFlow<SgDetailState>(SgDetailState.Loading)
@@ -59,10 +54,10 @@ class RecallDetailViewModel(
 
     init {
         viewModelScope.launch {
-            val entity = repository.observe(id).filterNotNull().first()
+            val entity = store.observe(id).filterNotNull().first()
             if (!markedRead) {
                 markedRead = true
-                repository.markRead(id)
+                store.markRead(id)
             }
             val attachmentUrl = entity.attachmentUrl
             when (entity.source) {
@@ -70,7 +65,12 @@ class RecallDetailViewModel(
                     loadSafetyGateDetail(entity.remoteId)
                 RecallSource.IT_OPERATOR ->
                     if (attachmentUrl != null) {
-                        loadPdf(attachmentUrl)
+                        pdfLoader.load(attachmentUrl).collect { part ->
+                            when (part) {
+                                is OperatorPdfPart.Photos -> _pdfPhotos.value = PdfPhotosState.Loaded(part.photos)
+                                is OperatorPdfPart.Fields -> _pdfFields.value = part.fields
+                            }
+                        }
                     } else {
                         _pdfPhotos.value = PdfPhotosState.Loaded(emptyList())
                     }
@@ -94,44 +94,6 @@ class RecallDetailViewModel(
             throw e
         } catch (e: Exception) {
             SgDetailState.Failed(e)
-        }
-    }
-
-    /**
-     * Downloads the recall PDF once and feeds both the photo carousel and the form-field rows
-     * from that single copy. Photos publish first so the carousel never waits on the PDFBox
-     * parse. Every failure degrades gracefully: a download failure or corrupt PDF yields no
-     * photos and no fields; a PDF that isn't the known operator-form template yields no fields
-     * (and possibly still photos, since photo boxes are template-independent).
-     */
-    private suspend fun loadPdf(attachmentUrl: String) = withContext(Dispatchers.IO) {
-        _pdfPhotos.value = PdfPhotosState.Loading
-        val file = File.createTempFile("recall", ".pdf", context.cacheDir)
-        try {
-            try {
-                httpClient.downloadTo(attachmentUrl, file)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                _pdfPhotos.value = PdfPhotosState.Loaded(emptyList())
-                return@withContext
-            }
-            _pdfPhotos.value = PdfPhotosState.Loaded(
-                try {
-                    PdfPhotoExtractor.extract(file)
-                } catch (e: Exception) {
-                    emptyList()
-                }
-            )
-            _pdfFields.value = try {
-                OperatorPdfFieldsReader.read(context, file)
-            } catch (e: Exception) {
-                null
-            } catch (e: LinkageError) {
-                null // BouncyCastle is excluded; a certificate-encrypted PDF would hit a missing class.
-            }
-        } finally {
-            file.delete()
         }
     }
 }

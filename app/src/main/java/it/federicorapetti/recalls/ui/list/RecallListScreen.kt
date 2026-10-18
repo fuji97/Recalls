@@ -188,7 +188,7 @@ fun RecallListScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButtonPosition = FabPosition.Center,
         floatingActionButton = {
-            SourceFilterToolbar(
+            RegionFilterToolbar(
                 filter = uiState.filter,
                 onFilterChange = viewModel::setFilter,
                 unreadCounts = uiState.unreadCounts,
@@ -294,35 +294,35 @@ fun RecallListScreen(
 }
 
 @Composable
-private fun SourceFilterToolbar(
-    filter: SourceFilter,
-    onFilterChange: (SourceFilter) -> Unit,
-    unreadCounts: Map<SourceFilter, Int>,
+private fun RegionFilterToolbar(
+    filter: RegionFilter,
+    onFilterChange: (RegionFilter) -> Unit,
+    unreadCounts: Map<RegionFilter, Int>,
     scrollBehavior: FloatingToolbarScrollBehavior
 ) {
     HorizontalFloatingToolbar(expanded = true, scrollBehavior = scrollBehavior) {
-        SourceToggle(
-            SourceFilter.ALL, R.string.filter_all, filter, onFilterChange, unreadCounts,
+        RegionToggle(
+            RegionFilter.ALL, R.string.filter_all, filter, onFilterChange, unreadCounts,
             ButtonGroupDefaults.connectedLeadingButtonShapes()
         )
-        SourceToggle(
-            SourceFilter.EU, R.string.filter_eu, filter, onFilterChange, unreadCounts,
+        RegionToggle(
+            RegionFilter.EU, R.string.filter_eu, filter, onFilterChange, unreadCounts,
             ButtonGroupDefaults.connectedMiddleButtonShapes()
         )
-        SourceToggle(
-            SourceFilter.IT, R.string.filter_it, filter, onFilterChange, unreadCounts,
+        RegionToggle(
+            RegionFilter.ITALY, R.string.filter_it, filter, onFilterChange, unreadCounts,
             ButtonGroupDefaults.connectedTrailingButtonShapes()
         )
     }
 }
 
 @Composable
-private fun SourceToggle(
-    value: SourceFilter,
+private fun RegionToggle(
+    value: RegionFilter,
     @StringRes label: Int,
-    selected: SourceFilter,
-    onSelect: (SourceFilter) -> Unit,
-    unreadCounts: Map<SourceFilter, Int>,
+    selected: RegionFilter,
+    onSelect: (RegionFilter) -> Unit,
+    unreadCounts: Map<RegionFilter, Int>,
     shapes: ToggleButtonShapes
 ) {
     val count = unreadCounts[value] ?: 0

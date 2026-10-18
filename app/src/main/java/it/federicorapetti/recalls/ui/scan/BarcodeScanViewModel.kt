@@ -2,7 +2,7 @@ package it.federicorapetti.recalls.ui.scan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import it.federicorapetti.recalls.data.RecallRepository
+import it.federicorapetti.recalls.data.BarcodeIndex
 import it.federicorapetti.recalls.data.local.RecallEntity
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +22,7 @@ data class BarcodeScanUiState(
     val unindexedCount: Int = 0
 )
 
-class BarcodeScanViewModel(private val repository: RecallRepository) : ViewModel() {
+class BarcodeScanViewModel(private val barcodeIndex: BarcodeIndex) : ViewModel() {
 
     private val scannedCode = MutableStateFlow<String?>(null)
 
@@ -33,12 +33,12 @@ class BarcodeScanViewModel(private val repository: RecallRepository) : ViewModel
             if (code == null) {
                 flowOf(null)
             } else {
-                repository.observeByBarcode(code)
+                barcodeIndex.observeMatches(code)
                     .map<List<RecallEntity>, List<RecallEntity>?> { it }
                     .onStart { emit(null) }
             }
         },
-        repository.observeUnindexedBarcodeCount()
+        barcodeIndex.observeUnindexedCount()
     ) { code, matches, unindexed -> BarcodeScanUiState(code, matches, unindexed) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BarcodeScanUiState())
 

@@ -5,5 +5,5 @@ enum class RecallSource {
     IT_OPERATOR,
     IT_MINISTRY;
 
-    val isItaly: Boolean get() = this != SAFETY_GATE
+    val region: Region get() = if (this == SAFETY_GATE) Region.EU else Region.ITALY
 }
