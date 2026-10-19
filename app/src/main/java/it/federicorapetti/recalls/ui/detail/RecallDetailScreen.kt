@@ -49,6 +49,7 @@ import androidx.compose.material3.carousel.CarouselItemScope
 import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
 import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -153,6 +154,10 @@ fun RecallDetailScreen(
             }
         } else {
             val photoModels = headerPhotoModels(entity, sgState, pdfPhotosState)
+            val photosSettled = headerPhotosSettled(entity.source, sgState, pdfPhotosState)
+            LaunchedEffect(photosSettled, photoModels.isEmpty()) {
+                if (photosSettled && photoModels.isEmpty()) viewerIndex = null
+            }
             Column(
                 modifier = Modifier
                     .padding(padding)
@@ -315,6 +320,17 @@ private fun headerPhotoModels(
 
     RecallSource.IT_OPERATOR -> (pdfPhotosState as? PdfPhotosState.Loaded)?.photos.orEmpty()
     RecallSource.IT_MINISTRY -> listOfNotNull(entity.imageUrl)
+}
+
+/** True once the header's photo list for [source] can no longer change on its own (loading finished). */
+private fun headerPhotosSettled(
+    source: RecallSource,
+    sgState: SgDetailState,
+    pdfPhotosState: PdfPhotosState
+): Boolean = when (source) {
+    RecallSource.SAFETY_GATE -> sgState !is SgDetailState.Loading
+    RecallSource.IT_OPERATOR -> pdfPhotosState is PdfPhotosState.Loaded
+    RecallSource.IT_MINISTRY -> true
 }
 
 /** Ids of the Safety Gate photos that can be displayed; the single source for both the carousel and the viewer. */
