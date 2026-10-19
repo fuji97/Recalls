@@ -1,6 +1,5 @@
 package it.federicorapetti.recalls.ui.detail
 
-import android.content.Intent
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -13,18 +12,15 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
@@ -43,23 +39,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.center
+import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.net.toUri
 import coil3.compose.SubcomposeAsyncImage
 import it.federicorapetti.recalls.R
 import kotlin.math.max
@@ -105,7 +100,6 @@ private fun PhotoViewerContent(
     pdfUrl: String?,
     onDismiss: () -> Unit,
 ) {
-    val context = LocalContext.current
     val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, photos.lastIndex)) { photos.size }
     val zoomStates = remember(photos.size) { List(photos.size) { ZoomState() } }
 
@@ -152,15 +146,7 @@ private fun PhotoViewerContent(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(text = attribution, style = MaterialTheme.typography.bodySmall)
-                if (pdfUrl != null) {
-                    FilledTonalButton(onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, pdfUrl.toUri()))
-                    }) {
-                        Icon(painterResource(R.drawable.ic_picture_as_pdf), contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(stringResource(R.string.detail_pdf_button))
-                    }
-                }
+                if (pdfUrl != null) PdfButton(pdfUrl)
             }
         }
     }
@@ -224,7 +210,7 @@ private suspend fun PointerInputScope.transformGestures(zoom: ZoomState) {
                 val zoomChange = event.calculateZoom()
                 val pan = event.calculatePan()
                 if (zoomChange != 1f || pan != Offset.Zero) {
-                    zoom.transform(event.calculateCentroid(useCurrent = true), pan, zoomChange)
+                    zoom.transform(event.calculateCentroid(useCurrent = false), pan, zoomChange)
                     event.changes.forEach { if (it.positionChanged()) it.consume() }
                 }
             }
@@ -257,10 +243,11 @@ private class ZoomState {
         offset = Offset.Zero
     }
 
+    /** Zooms by [zoom] about [centroid] (the pointers' previous centroid) and pans by [pan]. */
     fun transform(centroid: Offset, pan: Offset, zoom: Float) {
         val newScale = (scale * zoom).coerceIn(1f, MAX_SCALE)
-        val c = centroid - Offset(viewport.width / 2f, viewport.height / 2f)
-        val moved = c - (c - offset) * (newScale / scale) + pan
+        val anchor = centroid - viewport.center
+        val moved = anchor - (anchor - offset) * (newScale / scale) + pan
         scale = newScale
         offset = if (newScale == 1f) Offset.Zero else clamp(moved)
     }
@@ -269,9 +256,9 @@ private class ZoomState {
         if (scale > 1f) {
             reset()
         } else {
-            val c = tap - Offset(viewport.width / 2f, viewport.height / 2f)
+            val anchor = tap - viewport.center
             scale = DOUBLE_TAP_SCALE
-            offset = clamp(c - c * DOUBLE_TAP_SCALE)
+            offset = clamp(anchor - anchor * DOUBLE_TAP_SCALE)
         }
     }
 
