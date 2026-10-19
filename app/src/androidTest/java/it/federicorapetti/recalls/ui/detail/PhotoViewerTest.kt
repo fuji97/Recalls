@@ -142,6 +142,25 @@ class PhotoViewerTest {
     }
 
     @Test
+    fun jitteryDoubleTapZoomsOutWhileZoomed() {
+        show(initialPage = 1)
+
+        doubleTap(2)
+        page(2).performTouchInput {
+            repeat(2) {
+                down(center)
+                moveBy(Offset(2f, 0f))
+                up()
+                advanceEventTime(100)
+            }
+        }
+        rule.waitForIdle()
+        swipeLeftOn(2)
+
+        rule.onNodeWithText(position(3)).assertIsDisplayed()
+    }
+
+    @Test
     fun pinchOutKeepsSwipeOnSamePage() {
         show(initialPage = 1)
 

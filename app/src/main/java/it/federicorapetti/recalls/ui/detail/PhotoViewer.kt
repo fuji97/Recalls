@@ -29,6 +29,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -102,6 +103,9 @@ private fun PhotoViewerContent(
 ) {
     val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, photos.lastIndex)) { photos.size }
     val zoomStates = remember(photos.size) { List(photos.size) { ZoomState() } }
+    val scrollEnabled by remember(pagerState, zoomStates) {
+        derivedStateOf { zoomStates[pagerState.currentPage].scale <= 1f }
+    }
 
     LaunchedEffect(pagerState, zoomStates) {
         snapshotFlow { pagerState.currentPage }.collect { current ->
@@ -112,7 +116,7 @@ private fun PhotoViewerContent(
     Box(Modifier.fillMaxSize()) {
         HorizontalPager(
             state = pagerState,
-            userScrollEnabled = zoomStates[pagerState.currentPage].scale <= 1f,
+            userScrollEnabled = scrollEnabled,
             key = { it },
             modifier = Modifier.fillMaxSize()
         ) { page ->
@@ -200,16 +204,23 @@ private fun ZoomablePhoto(model: Any, description: String, zoom: ZoomState) {
     }
 }
 
-/** Pinch-zoom and, while zoomed, pan. At 1× with one finger nothing is consumed, so the pager swipes. */
+/** Pinch-zoom and, while zoomed, pan once past touch slop (so taps still reach the double-tap detector). At 1× with one finger nothing is consumed, so the pager swipes. */
 private suspend fun PointerInputScope.transformGestures(zoom: ZoomState) {
     awaitEachGesture {
         awaitFirstDown(requireUnconsumed = false)
+        var pastSlop = false
+        var slopPan = Offset.Zero
         do {
             val event = awaitPointerEvent()
-            if (event.changes.count { it.pressed } >= 2 || zoom.scale > 1f) {
+            val multiTouch = event.changes.count { it.pressed } >= 2
+            if (multiTouch || zoom.scale > 1f) {
                 val zoomChange = event.calculateZoom()
                 val pan = event.calculatePan()
-                if (zoomChange != 1f || pan != Offset.Zero) {
+                if (!pastSlop) {
+                    slopPan += pan
+                    pastSlop = multiTouch || slopPan.getDistance() > viewConfiguration.touchSlop
+                }
+                if (pastSlop && (zoomChange != 1f || pan != Offset.Zero)) {
                     zoom.transform(event.calculateCentroid(useCurrent = false), pan, zoomChange)
                     event.changes.forEach { if (it.positionChanged()) it.consume() }
                 }
