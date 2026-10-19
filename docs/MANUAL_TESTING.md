@@ -23,6 +23,12 @@ Run from the repo root in cmd, with a JDK on PATH.
    - An EU card shows the photo carousel, risk description and measures. "Open official page" opens the Safety Gate page.
    - An IT operator card's "Recall notice (PDF)" opens the PDF in the browser.
    - A Ministry warning (if one is inside 90 days) shows its image.
+   - **Fullscreen photo viewer**, for one recall per Source (EU, IT operator, Ministry warning): tap a photo in the header.
+     - It opens fullscreen on the tapped photo, on a dark background, with a close button and (for more than one photo) a "n / total" indicator. The attribution is shown at the bottom.
+     - Swipe between photos. Pinch to about 5×. Double-tap zooms in and a second double-tap zooms back out. Panning stops at the photo's edges, and a horizontal drag while zoomed pans instead of changing photo. Zoom resets when moving to another photo.
+     - Rotate the device: the viewer keeps working in landscape.
+     - The close button and system back both return to the detail screen at the same scroll position.
+     - IT operator recall: the viewer's "Recall notice (PDF)" button opens the PDF.
    - Switching the device language to Italian and relaunching shows Italian UI strings.
 7. **Periodic job:** `adb shell dumpsys jobscheduler | findstr /i "it.federicorapetti.recalls"` lists a periodic job at a 6 h interval. After switching the interval to 12 h in Settings, the period changes.
 8. **New-recall notifications** (within 1 h of the last sync, so that opening the app does not auto-refresh first):
@@ -35,3 +41,4 @@ Run from the repo root in cmd, with a JDK on PATH.
    - Turning the EU switch off and repeating produces only the Italy notification.
    - If `sqlite3` is missing on the image: run `adb shell "run-as it.federicorapetti.recalls cat databases/recalls.db" > recalls.db` (after force-stop; also delete `-wal`/`-shm` via `run-as rm`), edit it with Python's `sqlite3`, `adb push recalls.db /data/local/tmp/`, then `adb shell "run-as it.federicorapetti.recalls cp /data/local/tmp/recalls.db databases/recalls.db"`.
 9. **Icon:** the launcher shows the white badge-alert glyph on red. With themed icons enabled (long-press the home screen, Wallpaper & style, Themed icons), the monochrome version renders.
+10. **Instrumented tests:** with an emulator or device running (API 33 recommended), `gradlew.bat :app:connectedDebugAndroidTest` passes (`PhotoViewerTest`).
