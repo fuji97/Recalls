@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,12 +30,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.clickable
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ContainedLoadingIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
@@ -54,12 +53,10 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -71,6 +68,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -216,17 +215,8 @@ fun RecallDetailScreen(
                         Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.detail_open_official))
                     }
-                    if (entity.attachmentUrl != null) {
-                        FilledTonalButton(
-                            onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, entity.attachmentUrl.toUri()))
-                            },
-                            modifier = Modifier.weight(1f).fillMaxHeight()
-                        ) {
-                            Icon(painterResource(R.drawable.ic_picture_as_pdf), contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.detail_pdf_button))
-                        }
+                    entity.attachmentUrl?.let { url ->
+                        PdfButton(url, Modifier.weight(1f).fillMaxHeight())
                     }
                 }
 
@@ -238,7 +228,7 @@ fun RecallDetailScreen(
                         photos = photoModels,
                         initialPage = index.coerceIn(0, photoModels.lastIndex),
                         attribution = attributionText(entity.source),
-                        pdfUrl = entity.attachmentUrl.takeIf { entity.source == RecallSource.IT_OPERATOR },
+                        pdfUrl = entity.attachmentUrl,
                         onDismiss = { viewerIndex = null }
                     )
                 }
@@ -258,24 +248,19 @@ private fun DetailHeader(
     var imageFailed by remember(entity.imageUrl) { mutableStateOf(false) }
     when (entity.source) {
         RecallSource.SAFETY_GATE -> {
-            val sgPhotos = (sgState as? SgDetailState.Loaded)?.detail?.product?.photos.orEmpty()
+            val sgPhotoIds = safetyGatePhotoIds(sgState)
             when {
                 sgState is SgDetailState.Loading -> CarouselSkeleton()
-                sgPhotos.isNotEmpty() -> PhotoCarousel(count = sgPhotos.size) { index ->
-                    val photoId = sgPhotos[index].id
-                    if (photoId != null) {
-                        // The viewer list leaves out photos without an id, so map the carousel index onto it.
-                        val viewerIndex = sgPhotos.take(index).count { it.id != null }
-                        AsyncImage(
-                            model = SafetyGateApi.imageUrl(photoId),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .maskClip(MaterialTheme.shapes.extraLarge)
-                                .openPhoto(viewerIndex, photoCount, onPhotoClick)
-                        )
-                    }
+                sgPhotoIds.isNotEmpty() -> PhotoCarousel(count = sgPhotoIds.size) { index ->
+                    AsyncImage(
+                        model = SafetyGateApi.imageUrl(sgPhotoIds[index]),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .maskClip(MaterialTheme.shapes.extraLarge)
+                            .openPhoto(index, photoCount, onPhotoClick)
+                    )
                 }
                 else -> PlaceholderIcon()
             }
@@ -326,13 +311,15 @@ private fun headerPhotoModels(
     sgState: SgDetailState,
     pdfPhotosState: PdfPhotosState
 ): List<Any> = when (entity.source) {
-    RecallSource.SAFETY_GATE -> (sgState as? SgDetailState.Loaded)?.detail?.product?.photos.orEmpty()
-        .mapNotNull { it.id }
-        .map { SafetyGateApi.imageUrl(it) }
+    RecallSource.SAFETY_GATE -> safetyGatePhotoIds(sgState).map { SafetyGateApi.imageUrl(it) }
 
     RecallSource.IT_OPERATOR -> (pdfPhotosState as? PdfPhotosState.Loaded)?.photos.orEmpty()
     RecallSource.IT_MINISTRY -> listOfNotNull(entity.imageUrl)
 }
+
+/** Ids of the Safety Gate photos that can be displayed; the single source for both the carousel and the viewer. */
+private fun safetyGatePhotoIds(sgState: SgDetailState): List<Long> =
+    (sgState as? SgDetailState.Loaded)?.detail?.product?.photos.orEmpty().mapNotNull { it.id }
 
 /** Makes a header photo open the fullscreen viewer at [index], announced as "Photo X of [count]". */
 @Composable
