@@ -1,7 +1,7 @@
 # Manual testing
 
 Run from the repo root in cmd, with a JDK on PATH.
-1. `gradlew.bat :app:testDebugUnitTest`: the 3 test classes pass.
+1. `gradlew.bat :app:testDebugUnitTest`: all unit tests pass.
 2. `gradlew.bat :app:assembleDebug` succeeds.
 3. Start an Android emulator (API 33 or newer), then:
    - `adb wait-for-device`
@@ -12,7 +12,7 @@ Run from the repo root in cmd, with a JDK on PATH.
 4. **First sync, list:**
    - The list fills within about 30 s, with no notifications (baseline).
    - The newest EU card matches the first `reference` returned by the command below, which POSTs the search body from [`DATA_SOURCES.md`](DATA_SOURCES.md) after it is saved to `sg.json`: `curl -s -X POST -H "Content-Type: application/json" --data @sg.json https://ec.europa.eu/safety-gate-alerts/public/api/search`.
-   - Italian cards include the first title of `curl -s -A "<Chrome UA>" https://www.salute.gov.it/new/rss/RSS_avvisi_richiami_osa.xml`.
+   - Italian cards include the first item's title of `curl -s -A "<Chrome UA>" https://www.salute.gov.it/new/rss/RSS_avvisi_sicurezza_alimentare.xml` when its `pubDate` is within the last 90 days.
    - Thumbnails load for EU cards.
 5. **Filters and search:**
    - The toolbar "Italy" toggle shows only IT cards. "Unread only" shows none right after the baseline.
