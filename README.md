@@ -143,13 +143,13 @@ MainActivity.kt                  Notification-tap → LaunchRequest translation
 
 ## Testing
 
-Unit tests are pure-JVM (JUnit 4) and cover the deterministic transformation layer — DTO → domain mappers and the RSS parser — using fixtures under `app/src/test/resources/` that encode edge cases (null-title fallback, withdrawn/revoked items, an unrelated top-level JSON array the streaming decoder must skip, an empty RSS `<link/>`).
+Unit tests are JVM-only (JUnit 4). Most cover the deterministic transformation layer — DTO → domain mappers, the RSS parser, paging, PDF and photo-region logic — using fixtures under `app/src/test/resources/` that encode edge cases (null-title fallback, withdrawn/revoked items, an unrelated top-level JSON array the streaming decoder must skip, an empty RSS `<link/>`). Robolectric-backed tests run `RecallStore` (baseline/New/Read semantics), `BarcodeIndex` and `RecallRepository` against in-memory Room; the repository tests drive the real API clients through a fake OkHttp interceptor, so no network is used.
 
 ```bat
 gradlew.bat :app:testDebugUnitTest
 ```
 
-ViewModels, Compose UI, WorkManager scheduling, Room queries, and notification posting are currently verified manually (emulator install + scripted checks) per `docs/MANUAL_TESTING.md` — no Robolectric or instrumented tests are wired up yet.
+ViewModels, Compose UI, WorkManager scheduling, notifications, and camera scanning are verified manually (emulator install + scripted checks) per `docs/MANUAL_TESTING.md`.
 
 ## Releases
 
