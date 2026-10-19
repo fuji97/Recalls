@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,9 +54,12 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -139,6 +143,7 @@ fun RecallDetailScreen(
             )
         }
     ) { padding ->
+        var viewerIndex by rememberSaveable { mutableStateOf<Int?>(null) }
         val entity = item
         if (entity == null) {
             Box(
@@ -148,13 +153,20 @@ fun RecallDetailScreen(
                 ContainedLoadingIndicator()
             }
         } else {
+            val photoModels = headerPhotoModels(entity, sgState, pdfPhotosState)
             Column(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize()
                     .verticalScroll(scrollState)
             ) {
-                DetailHeader(entity, sgState, pdfPhotosState)
+                DetailHeader(
+                    entity,
+                    sgState,
+                    pdfPhotosState,
+                    photoCount = photoModels.size,
+                    onPhotoClick = { viewerIndex = it }
+                )
                 Text(
                     text = "${sourceLabelText(entity.source)} · ${formatDate(entity.publishedAt)}",
                     style = MaterialTheme.typography.labelLarge,
@@ -220,12 +232,29 @@ fun RecallDetailScreen(
 
                 Spacer(Modifier.height(16.dp))
             }
+            viewerIndex?.let { index ->
+                if (photoModels.isNotEmpty()) {
+                    PhotoViewer(
+                        photos = photoModels,
+                        initialPage = index.coerceIn(0, photoModels.lastIndex),
+                        attribution = attributionText(entity.source),
+                        pdfUrl = entity.attachmentUrl.takeIf { entity.source == RecallSource.IT_OPERATOR },
+                        onDismiss = { viewerIndex = null }
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun DetailHeader(entity: RecallEntity, sgState: SgDetailState, pdfPhotosState: PdfPhotosState) {
+private fun DetailHeader(
+    entity: RecallEntity,
+    sgState: SgDetailState,
+    pdfPhotosState: PdfPhotosState,
+    photoCount: Int,
+    onPhotoClick: (Int) -> Unit
+) {
     var imageFailed by remember(entity.imageUrl) { mutableStateOf(false) }
     when (entity.source) {
         RecallSource.SAFETY_GATE -> {
@@ -235,6 +264,8 @@ private fun DetailHeader(entity: RecallEntity, sgState: SgDetailState, pdfPhotos
                 sgPhotos.isNotEmpty() -> PhotoCarousel(count = sgPhotos.size) { index ->
                     val photoId = sgPhotos[index].id
                     if (photoId != null) {
+                        // The viewer list leaves out photos without an id, so map the carousel index onto it.
+                        val viewerIndex = sgPhotos.take(index).count { it.id != null }
                         AsyncImage(
                             model = SafetyGateApi.imageUrl(photoId),
                             contentDescription = null,
@@ -242,6 +273,7 @@ private fun DetailHeader(entity: RecallEntity, sgState: SgDetailState, pdfPhotos
                             modifier = Modifier
                                 .fillMaxSize()
                                 .maskClip(MaterialTheme.shapes.extraLarge)
+                                .openPhoto(viewerIndex, photoCount, onPhotoClick)
                         )
                     }
                 }
@@ -262,6 +294,7 @@ private fun DetailHeader(entity: RecallEntity, sgState: SgDetailState, pdfPhotos
                             modifier = Modifier
                                 .fillMaxSize()
                                 .maskClip(MaterialTheme.shapes.extraLarge)
+                                .openPhoto(index, photoCount, onPhotoClick)
                         )
                     }
                 } else {
@@ -279,11 +312,35 @@ private fun DetailHeader(entity: RecallEntity, sgState: SgDetailState, pdfPhotos
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(240.dp)
+                    .openPhoto(0, photoCount, onPhotoClick)
             )
         } else {
             PlaceholderIcon()
         }
     }
+}
+
+/** Models shown by the fullscreen viewer, in the same order as the header's clickable photos. */
+private fun headerPhotoModels(
+    entity: RecallEntity,
+    sgState: SgDetailState,
+    pdfPhotosState: PdfPhotosState
+): List<Any> = when (entity.source) {
+    RecallSource.SAFETY_GATE -> (sgState as? SgDetailState.Loaded)?.detail?.product?.photos.orEmpty()
+        .mapNotNull { it.id }
+        .map { SafetyGateApi.imageUrl(it) }
+
+    RecallSource.IT_OPERATOR -> (pdfPhotosState as? PdfPhotosState.Loaded)?.photos.orEmpty()
+    RecallSource.IT_MINISTRY -> listOfNotNull(entity.imageUrl)
+}
+
+/** Makes a header photo open the fullscreen viewer at [index], announced as "Photo X of [count]". */
+@Composable
+private fun Modifier.openPhoto(index: Int, count: Int, onPhotoClick: (Int) -> Unit): Modifier {
+    val description = stringResource(R.string.photo_viewer_photo_description, index + 1, count)
+    return this
+        .clickable(onClickLabel = stringResource(R.string.detail_open_photo)) { onPhotoClick(index) }
+        .semantics { contentDescription = description }
 }
 
 /** A [HorizontalMultiBrowseCarousel] sized to match the detail header's photo slot. */

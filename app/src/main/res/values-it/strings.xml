@@ -66,6 +66,10 @@
     <string name="detail_share_text">%1$s\n%2$s</string>
     <string name="detail_attribution_eu">Fonte: Commissione europea – Safety Gate, CC BY 4.0</string>
     <string name="detail_attribution_it">Fonte: Ministero della Salute – salute.gov.it, CC BY 4.0</string>
+    <string name="photo_viewer_close">Chiudi</string>
+    <string name="photo_viewer_position">%1$d / %2$d</string>
+    <string name="photo_viewer_photo_description">Foto %1$d di %2$d</string>
+    <string name="detail_open_photo">Visualizza foto a schermo intero</string>
 
     <!-- Scan screen -->
     <string name="action_scan_barcode">Scansiona codice a barre</string>
