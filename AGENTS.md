@@ -128,3 +128,17 @@ Release notes on tag push come from `cliff.toml` (git-cliff) via the `release` j
 - **Convention for new tests:** mirror the source package under `app/src/test/java/it/federicorapetti/recalls/...`, name the class `{SourceClass}Test.kt`, put new fixtures in `app/src/test/resources/` with a descriptive snake_case name, assert with plain JUnit `Assert` (no AssertJ/Hamcrest/Truth in use).
 - **Run:** `gradlew.bat :app:testDebugUnitTest`.
 - **Out of scope for automated tests today:** ViewModels, Compose UI, WorkManager scheduling, Room queries, notification posting — these are verified manually per `docs/MANUAL_TESTING.md` (emulator install + scripted checks, including sqlite3 surgery on the device DB to force new-item notification scenarios). If you add tests in these areas, you'll need to introduce Robolectric or instrumented tests — none of that scaffolding exists yet.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`fuji97/Recalls`, via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
