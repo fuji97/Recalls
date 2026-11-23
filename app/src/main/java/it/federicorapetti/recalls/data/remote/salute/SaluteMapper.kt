@@ -14,8 +14,7 @@ fun parseItalianDate(s: String): Long =
 
 fun SaluteOperatorNode.toContent(): RecallContent {
     val motivoName = relationships.motivo?.name
-    val firstAttachment = relationships.allegati?.firstOrNull()
-    val attachmentUrl = firstAttachment?.url
+    val attachmentUrl = relationships.allegati?.firstOrNull()?.url
         ?.let { "https://www.salute.gov.it/new$it" }
     return RecallContent(
         id = "IT:$id",
@@ -28,7 +27,7 @@ fun SaluteOperatorNode.toContent(): RecallContent {
         reference = null,
         country = null,
         publishedAt = parseItalianDate(dataPubblicazione),
-        imageUrl = attachmentUrl.takeIf { firstAttachment?.filemime == "application/pdf" },
+        imageUrl = null, // previews come from the photos OperatorPdfArchive stores
         webUrl = "https://www.salute.gov.it/new/it${path.alias}",
         attachmentUrl = attachmentUrl,
         isRevocation = motivoName?.startsWith("Revoca") == true

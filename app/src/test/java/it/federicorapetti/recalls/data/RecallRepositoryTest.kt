@@ -8,6 +8,8 @@ import it.federicorapetti.recalls.data.model.RecallSource.SAFETY_GATE
 import it.federicorapetti.recalls.data.remote.HttpStatusException
 import it.federicorapetti.recalls.data.remote.safetygate.SafetyGateApi
 import it.federicorapetti.recalls.data.remote.salute.ROME
+import it.federicorapetti.recalls.data.remote.salute.OperatorPdf
+import it.federicorapetti.recalls.data.remote.salute.OperatorPdfFields
 import it.federicorapetti.recalls.data.remote.salute.SaluteApi
 import java.time.Instant
 import java.time.ZoneOffset
@@ -28,13 +30,18 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /** The real repository and API clients against canned HTTP responses and in-memory Room. */
 @RunWith(RobolectricTestRunner::class)
 class RecallRepositoryTest {
+    @get:Rule
+    val folder = TemporaryFolder()
+
     private val dayMs = 24L * 60 * 60 * 1000
     private val now = System.currentTimeMillis()
 
@@ -107,7 +114,13 @@ class RecallRepositoryTest {
         val client = OkHttpClient.Builder().addInterceptor(fake).build()
         val sgApi = SafetyGateApi(client)
         barcodeIndex = BarcodeIndex(db, sgApi)
-        repo = RecallRepository(store, barcodeIndex, sgApi, SaluteApi(client))
+        val archive = OperatorPdfArchive(db, folder.root) {
+            OperatorPdf(
+                emptyList(),
+                OperatorPdfFields(null, null, null, null, null, null, null, null, null, "Listeria", null)
+            )
+        }
+        repo = RecallRepository(store, barcodeIndex, archive, sgApi, SaluteApi(client))
     }
 
     @After
@@ -121,8 +134,14 @@ class RecallRepositoryTest {
     private fun itDate(ms: Long): String =
         Instant.ofEpochMilli(ms).atZone(ROME).toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
 
-    private fun node(id: String, publishedAt: Long, title: String = "T$id", withdrawn: Boolean = false) =
-        """{"id":"$id","dataPubblicazione":"${itDate(publishedAt)}","title":"$title","field_depubblicato":$withdrawn,"path":{"alias":"/x/$id"}}"""
+    private fun node(id: String, publishedAt: Long, title: String = "T$id", withdrawn: Boolean = false, withPdf: Boolean = false): String {
+        val relationships = if (withPdf) {
+            ""","relationships":{"field_file_allegato":[{"filemime":"application/pdf","url":"/x.pdf"}]}"""
+        } else {
+            ""
+        }
+        return """{"id":"$id","dataPubblicazione":"${itDate(publishedAt)}","title":"$title","field_depubblicato":$withdrawn,"path":{"alias":"/x/$id"}$relationships}"""
+    }
 
     private fun rss(slug: String, publishedAt: Long) =
         "<item><title>W $slug</title><link>https://www.salute.gov.it/new/it/avvisi-sicurezza-alimentare/$slug</link>" +
@@ -265,5 +284,16 @@ class RecallRepositoryTest {
         assertTrue(result.errors.isEmpty())
         assertTrue("SG:7" in ids())
         assertEquals(1, barcodeIndex.observeUnindexedCount().first())
+    }
+
+    @Test
+    fun `new operator recalls are reported with their parsed PDF fields`() = runBlocking {
+        operatorNodes = listOf(node("n1", now - dayMs))
+        repo.sync()
+
+        operatorNodes = operatorNodes + node("n2", now, withPdf = true)
+        val result = repo.sync()
+
+        assertEquals("Listeria", result.newItems[IT_OPERATOR]!!.single().pdfFields?.reasonDetail)
     }
 }

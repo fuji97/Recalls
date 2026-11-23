@@ -56,6 +56,8 @@ class RecallStore(private val db: RecallDatabase) {
 
     suspend fun etag(source: RecallSource): String? = dao.getState(source)?.etag
 
+    suspend fun get(ids: List<String>): List<RecallEntity> = dao.getByIds(ids)
+
     suspend fun newestPublishedAt(source: RecallSource): Long? = dao.maxPublishedAt(source)
 
     suspend fun storedIds(ids: Collection<String>): Set<String> = dao.existingIds(ids.toList()).toSet()

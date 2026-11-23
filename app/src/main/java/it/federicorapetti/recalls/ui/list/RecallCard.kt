@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,7 +38,8 @@ import it.federicorapetti.recalls.R
 import it.federicorapetti.recalls.data.local.RecallEntity
 import it.federicorapetti.recalls.data.local.isUnread
 import it.federicorapetti.recalls.data.model.RecallSource
-import it.federicorapetti.recalls.ui.common.riskLabel
+import it.federicorapetti.recalls.data.previewImage
+import it.federicorapetti.recalls.ui.common.recallReason
 
 @Composable
 fun RecallCard(item: RecallEntity, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -81,6 +83,16 @@ fun RecallCard(item: RecallEntity, onClick: () -> Unit, modifier: Modifier = Mod
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
+                    recallReason(LocalContext.current, item)?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
                 if (item.isUnread) {
                     Badge()
@@ -96,10 +108,11 @@ fun RecallCard(item: RecallEntity, onClick: () -> Unit, modifier: Modifier = Mod
 
 @Composable
 private fun RecallCardLeading(item: RecallEntity) {
-    var imageFailed by remember(item.imageUrl) { mutableStateOf(false) }
-    if (item.imageUrl != null && !imageFailed) {
+    val model = item.previewImage(LocalContext.current.filesDir)
+    var imageFailed by remember(model) { mutableStateOf(false) }
+    if (model != null && !imageFailed) {
         AsyncImage(
-            model = item.imageUrl,
+            model = model,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             onError = { imageFailed = true },
@@ -134,28 +147,17 @@ private data class CardField(val label: String, val value: String)
 @Composable
 private fun cardFields(item: RecallEntity): List<CardField> {
     val fields = when (item.source) {
-        RecallSource.SAFETY_GATE -> {
-            val riskTypes = item.reason
-                ?.split(",")
-                ?.filter { it.isNotBlank() }
-                .orEmpty()
-                .map { riskLabel(it) }
-                .joinToString(", ")
-            listOf(
-                CardField(stringResource(R.string.detail_label_brand), item.brand.orEmpty()),
-                CardField(stringResource(R.string.detail_label_risk_types), riskTypes),
-                CardField(stringResource(R.string.detail_label_product), item.subtitle.orEmpty()),
-                CardField(stringResource(R.string.detail_label_reference), item.reference.orEmpty())
-            )
-        }
-        RecallSource.IT_OPERATOR -> listOf(
+        RecallSource.SAFETY_GATE -> listOf(
             CardField(stringResource(R.string.detail_label_brand), item.brand.orEmpty()),
-            CardField(stringResource(R.string.detail_label_reason), item.reason.orEmpty())
+            CardField(stringResource(R.string.detail_label_product), item.subtitle.orEmpty()),
+            CardField(stringResource(R.string.detail_label_reference), item.reference.orEmpty())
+        )
+        RecallSource.IT_OPERATOR -> listOf(
+            CardField(stringResource(R.string.detail_label_brand), item.brand.orEmpty())
         )
         RecallSource.IT_MINISTRY -> listOf(
             CardField(stringResource(R.string.detail_label_product), item.subtitle.orEmpty()),
             CardField(stringResource(R.string.detail_label_brand), item.brand.orEmpty()),
-            CardField(stringResource(R.string.detail_label_hazard), item.reason.orEmpty()),
             CardField(stringResource(R.string.detail_label_country), item.country.orEmpty())
         )
     }

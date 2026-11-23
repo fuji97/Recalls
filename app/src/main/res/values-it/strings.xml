@@ -106,8 +106,6 @@
     <string name="channel_it">Richiami in Italia (Ministero della Salute)</string>
 
     <!-- Notifications -->
-    <string name="notif_new_eu">Nuovo richiamo UE</string>
-    <string name="notif_new_it">Nuovo richiamo in Italia</string>
     <string name="notif_more">"+%1$d altri"</string>
 
     <!-- Risk labels -->

@@ -2,6 +2,7 @@ package it.federicorapetti.recalls.data.local
 
 import androidx.room.Dao
 import androidx.room.Query
+import androidx.room.Update
 import androidx.room.Upsert
 import it.federicorapetti.recalls.data.model.RecallSource
 import kotlinx.coroutines.flow.Flow
@@ -71,6 +72,16 @@ interface RecallDao {
             "WHERE b.codes LIKE '%' || :key || '%' ORDER BY r.publishedAt DESC, r.id"
     )
     fun observeByBarcode(key: String): Flow<List<RecallEntity>>
+
+    @Update(entity = RecallEntity::class)
+    suspend fun updatePdf(update: RecallPdfUpdate)
+
+    @Query(
+        "SELECT id, remoteId, attachmentUrl FROM recalls WHERE source = :source AND attachmentUrl IS NOT NULL " +
+            "AND pdfParsedAt IS NULL AND publishedAt >= :from ORDER BY publishedAt DESC"
+    )
+    suspend fun unparsedPdfs(source: RecallSource, from: Long): List<OperatorPdfCandidate>
 }
 
 data class SgIndexCandidate(val id: String, val remoteId: String, val publishedAt: Long)
+data class OperatorPdfCandidate(val id: String, val remoteId: String, val attachmentUrl: String)

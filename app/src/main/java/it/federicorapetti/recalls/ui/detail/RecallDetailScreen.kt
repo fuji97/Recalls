@@ -1,7 +1,6 @@
 package it.federicorapetti.recalls.ui.detail
 
 import android.content.Intent
-import android.graphics.Bitmap
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
@@ -12,7 +11,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,7 +57,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -82,7 +79,9 @@ import it.federicorapetti.recalls.data.model.RecallSource
 import it.federicorapetti.recalls.data.remote.safetygate.SafetyGateApi
 import it.federicorapetti.recalls.data.remote.salute.OperatorPdfFields
 import it.federicorapetti.recalls.data.remote.salute.ROME
+import it.federicorapetti.recalls.data.photoFiles
 import it.federicorapetti.recalls.ui.common.riskLabel
+import java.io.File
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
@@ -94,9 +93,8 @@ fun RecallDetailScreen(
 ) {
     val item by viewModel.item.collectAsStateWithLifecycle()
     val sgState by viewModel.sgDetail.collectAsStateWithLifecycle()
-    val pdfPhotosState by viewModel.pdfPhotos.collectAsStateWithLifecycle()
-    val pdfFields by viewModel.pdfFields.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val filesDir = context.filesDir
     val scrollState = rememberScrollState()
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     var titleBottom by remember { mutableIntStateOf(Int.MAX_VALUE) }
@@ -153,8 +151,8 @@ fun RecallDetailScreen(
                 ContainedLoadingIndicator()
             }
         } else {
-            val photoModels = headerPhotoModels(entity, sgState, pdfPhotosState)
-            val photosSettled = headerPhotosSettled(entity.source, sgState, pdfPhotosState)
+            val photoModels = headerPhotoModels(entity, sgState, filesDir)
+            val photosSettled = headerPhotosSettled(entity.source, sgState)
             LaunchedEffect(photosSettled, photoModels.isEmpty()) {
                 if (photosSettled && photoModels.isEmpty()) viewerIndex = null
             }
@@ -167,7 +165,7 @@ fun RecallDetailScreen(
                 DetailHeader(
                     entity,
                     sgState,
-                    pdfPhotosState,
+                    filesDir,
                     photoCount = photoModels.size,
                     onPhotoClick = { viewerIndex = it }
                 )
@@ -197,7 +195,7 @@ fun RecallDetailScreen(
 
                 when (entity.source) {
                     RecallSource.SAFETY_GATE -> SafetyGateSections(sgState, onRetry = viewModel::retry)
-                    RecallSource.IT_OPERATOR -> ItOperatorSections(entity, pdfFields)
+                    RecallSource.IT_OPERATOR -> ItOperatorSections(entity, entity.pdfFields)
                     RecallSource.IT_MINISTRY -> ItMinistrySections(entity)
                 }
 
@@ -246,7 +244,7 @@ fun RecallDetailScreen(
 private fun DetailHeader(
     entity: RecallEntity,
     sgState: SgDetailState,
-    pdfPhotosState: PdfPhotosState,
+    filesDir: File,
     photoCount: Int,
     onPhotoClick: (Int) -> Unit
 ) {
@@ -271,25 +269,22 @@ private fun DetailHeader(
             }
         }
 
-        RecallSource.IT_OPERATOR -> when (pdfPhotosState) {
-            PdfPhotosState.Loading -> CarouselSkeleton()
-            is PdfPhotosState.Loaded -> {
-                val pdfPhotos = pdfPhotosState.photos
-                if (pdfPhotos.isNotEmpty()) {
-                    PhotoCarousel(count = pdfPhotos.size) { index ->
-                        Image(
-                            bitmap = pdfPhotos[index].asImageBitmap(),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .maskClip(MaterialTheme.shapes.extraLarge)
-                                .openPhoto(index, photoCount, onPhotoClick)
-                        )
-                    }
-                } else {
-                    PlaceholderIcon()
+        RecallSource.IT_OPERATOR -> {
+            val files = entity.photoFiles(filesDir)
+            if (files.isNotEmpty()) {
+                PhotoCarousel(count = files.size) { index ->
+                    AsyncImage(
+                        model = files[index],
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .maskClip(MaterialTheme.shapes.extraLarge)
+                            .openPhoto(index, photoCount, onPhotoClick)
+                    )
                 }
+            } else {
+                PlaceholderIcon()
             }
         }
 
@@ -314,23 +309,18 @@ private fun DetailHeader(
 private fun headerPhotoModels(
     entity: RecallEntity,
     sgState: SgDetailState,
-    pdfPhotosState: PdfPhotosState
+    filesDir: File
 ): List<Any> = when (entity.source) {
     RecallSource.SAFETY_GATE -> safetyGatePhotoIds(sgState).map { SafetyGateApi.imageUrl(it) }
 
-    RecallSource.IT_OPERATOR -> (pdfPhotosState as? PdfPhotosState.Loaded)?.photos.orEmpty()
+    RecallSource.IT_OPERATOR -> entity.photoFiles(filesDir)
     RecallSource.IT_MINISTRY -> listOfNotNull(entity.imageUrl)
 }
 
 /** True once the header's photo list for [source] can no longer change on its own (loading finished). */
-private fun headerPhotosSettled(
-    source: RecallSource,
-    sgState: SgDetailState,
-    pdfPhotosState: PdfPhotosState
-): Boolean = when (source) {
+private fun headerPhotosSettled(source: RecallSource, sgState: SgDetailState): Boolean = when (source) {
     RecallSource.SAFETY_GATE -> sgState !is SgDetailState.Loading
-    RecallSource.IT_OPERATOR -> pdfPhotosState is PdfPhotosState.Loaded
-    RecallSource.IT_MINISTRY -> true
+    RecallSource.IT_OPERATOR, RecallSource.IT_MINISTRY -> true
 }
 
 /** Ids of the Safety Gate photos that can be displayed; the single source for both the carousel and the viewer. */

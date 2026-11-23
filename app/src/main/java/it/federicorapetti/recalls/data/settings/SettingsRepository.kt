@@ -48,6 +48,6 @@ class SettingsRepository(private val context: Context) {
     }
 
     companion object {
-        const val DEFAULT_INTERVAL_HOURS = 6
+        const val DEFAULT_INTERVAL_HOURS = 1
     }
 }

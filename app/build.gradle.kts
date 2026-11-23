@@ -24,7 +24,7 @@ android {
 
     defaultConfig {
         applicationId = "it.federicorapetti.recalls"
-        minSdk = 33
+        minSdk = 26
         targetSdk = 37
         // Overridable from CI: `-PappVersionCode=N -PappVersionName=X.Y.Z` (derived from the release tag).
         versionCode = (findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 1

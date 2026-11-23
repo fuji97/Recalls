@@ -3,6 +3,7 @@ package it.federicorapetti.recalls.ui.list
 import android.Manifest
 import androidx.annotation.StringRes
 import android.content.pm.PackageManager
+import android.os.Build
 import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -96,9 +97,11 @@ fun RecallListScreen(
     }
     LaunchedEffect(permissionAsked) {
         if (!permissionAsked) {
-            val granted = ContextCompat.checkSelfPermission(
-                context, Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
+            // POST_NOTIFICATIONS is a runtime permission only from Android 13.
+            val granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
             if (granted) {
                 viewModel.onNotifPermissionAsked()
             } else {

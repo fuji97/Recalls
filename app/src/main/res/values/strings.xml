@@ -107,8 +107,6 @@
     <string name="channel_it">Italian recalls (Ministero della Salute)</string>
 
     <!-- Notifications -->
-    <string name="notif_new_eu">New EU recall</string>
-    <string name="notif_new_it">New recall in Italy</string>
     <string name="notif_more">"+%1$d more"</string>
 
     <!-- Risk labels -->

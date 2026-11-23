@@ -2,6 +2,7 @@ package it.federicorapetti.recalls
 
 import android.content.Context
 import androidx.room.Room
+import it.federicorapetti.recalls.data.OperatorPdfArchive
 import it.federicorapetti.recalls.data.BarcodeIndex
 import it.federicorapetti.recalls.data.RecallRepository
 import it.federicorapetti.recalls.data.RecallStore
@@ -29,7 +30,11 @@ class AppContainer(context: Context) {
         context,
         RecallDatabase::class.java,
         RecallDatabase.DB_NAME
-    ).addMigrations(RecallDatabase.MIGRATION_1_2, RecallDatabase.MIGRATION_2_3).build()
+    ).addMigrations(
+        RecallDatabase.MIGRATION_1_2,
+        RecallDatabase.MIGRATION_2_3,
+        RecallDatabase.MIGRATION_3_4
+    ).build()
 
     val store = RecallStore(database)
 
@@ -41,9 +46,11 @@ class AppContainer(context: Context) {
 
     val barcodeIndex = BarcodeIndex(database, safetyGateApi)
 
-    val repository = RecallRepository(store, barcodeIndex, safetyGateApi, saluteApi)
-
     val operatorPdfLoader = OperatorPdfLoader(appContext, httpClient)
+
+    val operatorPdfs = OperatorPdfArchive(database, appContext.filesDir, operatorPdfLoader::load)
+
+    val repository = RecallRepository(store, barcodeIndex, operatorPdfs, safetyGateApi, saluteApi)
 
     val notifier = RecallNotifier(context)
 

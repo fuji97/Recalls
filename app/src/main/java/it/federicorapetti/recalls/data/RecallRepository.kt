@@ -41,6 +41,7 @@ data class SyncResult(
 class RecallRepository(
     private val store: RecallStore,
     private val barcodeIndex: BarcodeIndex,
+    private val operatorPdfs: OperatorPdfArchive,
     private val sgApi: SafetyGateApi,
     private val saluteApi: SaluteApi
 ) {
@@ -137,25 +138,38 @@ class RecallRepository(
         return result
     }
 
-    private suspend fun syncItOperator(historyStart: Long): List<RecallEntity> =
-        when (val fetch = saluteApi.fetchOperatorRecalls(store.etag(RecallSource.IT_OPERATOR))) {
+    private suspend fun syncItOperator(historyStart: Long): List<RecallEntity> {
+        val newItems = when (val fetch = saluteApi.fetchOperatorRecalls(store.etag(RecallSource.IT_OPERATOR))) {
             is OperatorFetch.NotModified -> {
                 store.recordUnchanged(RecallSource.IT_OPERATOR)
                 emptyList()
             }
 
             is OperatorFetch.Data -> {
-                report(RecallSource.IT_OPERATOR, PROGRESS_FETCHED)
                 val contents = fetch.nodes
                     .filterNot { it.depubblicato }
                     .map { it.toContent() }
                     .filter { it.publishedAt >= historyStart }
-                val removed = fetch.nodes
-                    .filter { it.depubblicato }
-                    .map { "IT:${it.id}" }
-                store.store(RecallSource.IT_OPERATOR, contents, removed, etag = fetch.etag)
+                val withdrawn = fetch.nodes.filter { it.depubblicato }
+                store.store(
+                    RecallSource.IT_OPERATOR,
+                    contents,
+                    withdrawn.map { "IT:${it.id}" },
+                    etag = fetch.etag
+                ).also { operatorPdfs.deletePhotos(withdrawn.map { it.id }) }
             }
         }
+        // Also on a 304, so the PDF backlog keeps progressing.
+        report(RecallSource.IT_OPERATOR, PROGRESS_DATASET_STORED)
+        operatorPdfs.catchUp(historyStart) { done, total ->
+            report(
+                RecallSource.IT_OPERATOR,
+                PROGRESS_DATASET_STORED + (PROGRESS_FETCHED - PROGRESS_DATASET_STORED) * done / total
+            )
+        }
+        // Re-read so notifications carry the parsed Reason and photo count.
+        return if (newItems.isEmpty()) newItems else store.get(newItems.map { it.id })
+    }
 
     private suspend fun syncItMinistry(historyStart: Long): List<RecallEntity> {
         val items = saluteApi.fetchMinistryRss()
@@ -190,6 +204,7 @@ class RecallRepository(
     companion object {
         private const val TWO_DAYS_MS = 2L * 24 * 60 * 60 * 1000
         private const val PROGRESS_STARTED = 0.1f
+        private const val PROGRESS_DATASET_STORED = 0.5f
         private const val PROGRESS_FETCHED = 0.9f
     }
 }

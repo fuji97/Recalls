@@ -12,7 +12,13 @@ fun inMemoryDb(): RecallDatabase =
         .build()
 
 /** [id] includes the source prefix, e.g. "SG:1"; remoteId is the part after it. */
-fun content(id: String, source: RecallSource, publishedAt: Long, title: String = "t") = RecallContent(
+fun content(
+    id: String,
+    source: RecallSource,
+    publishedAt: Long,
+    title: String = "t",
+    attachmentUrl: String? = null
+) = RecallContent(
     id = id,
     source = source,
     remoteId = id.substringAfter(':'),
@@ -25,6 +31,6 @@ fun content(id: String, source: RecallSource, publishedAt: Long, title: String =
     publishedAt = publishedAt,
     imageUrl = null,
     webUrl = "https://example.test/$id",
-    attachmentUrl = null,
+    attachmentUrl = attachmentUrl,
     isRevocation = false
 )

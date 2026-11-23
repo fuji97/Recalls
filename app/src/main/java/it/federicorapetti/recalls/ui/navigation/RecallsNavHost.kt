@@ -72,7 +72,7 @@ fun RecallsNavHost(
             }
             entry<RecallDetailKey> { key ->
                 val detailViewModel = viewModel {
-                    RecallDetailViewModel(key.id, container.store, container.repository, container.operatorPdfLoader)
+                    RecallDetailViewModel(key.id, container.store, container.repository)
                 }
                 RecallDetailScreen(
                     viewModel = detailViewModel,

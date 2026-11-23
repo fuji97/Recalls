@@ -1,5 +1,6 @@
 package it.federicorapetti.recalls.ui.common
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import it.federicorapetti.recalls.R
@@ -38,3 +39,6 @@ fun riskLabel(name: String): String {
     val resId = RISK_LABEL_RES[name.uppercase()]
     return if (resId != null) stringResource(resId) else humanizeEnum(name)
 }
+
+fun riskLabel(context: Context, name: String): String =
+    RISK_LABEL_RES[name.uppercase()]?.let(context::getString) ?: humanizeEnum(name)

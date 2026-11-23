@@ -1,6 +1,5 @@
 package it.federicorapetti.recalls.ui.detail
 
-import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import it.federicorapetti.recalls.data.RecallRepository
@@ -8,9 +7,6 @@ import it.federicorapetti.recalls.data.RecallStore
 import it.federicorapetti.recalls.data.local.RecallEntity
 import it.federicorapetti.recalls.data.model.RecallSource
 import it.federicorapetti.recalls.data.remote.safetygate.SgDetail
-import it.federicorapetti.recalls.data.remote.salute.OperatorPdfFields
-import it.federicorapetti.recalls.data.remote.salute.OperatorPdfLoader
-import it.federicorapetti.recalls.data.remote.salute.OperatorPdfPart
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,16 +22,10 @@ sealed interface SgDetailState {
     data class Failed(val error: Throwable) : SgDetailState
 }
 
-sealed interface PdfPhotosState {
-    data object Loading : PdfPhotosState
-    data class Loaded(val photos: List<Bitmap>) : PdfPhotosState
-}
-
 class RecallDetailViewModel(
     private val id: String,
     private val store: RecallStore,
-    private val repository: RecallRepository,
-    private val pdfLoader: OperatorPdfLoader
+    private val repository: RecallRepository
 ) : ViewModel() {
 
     val item: StateFlow<RecallEntity?> = store.observe(id)
@@ -43,12 +33,6 @@ class RecallDetailViewModel(
 
     private val _sgDetail = MutableStateFlow<SgDetailState>(SgDetailState.Loading)
     val sgDetail: StateFlow<SgDetailState> = _sgDetail
-
-    private val _pdfPhotos = MutableStateFlow<PdfPhotosState>(PdfPhotosState.Loading)
-    val pdfPhotos: StateFlow<PdfPhotosState> = _pdfPhotos
-
-    private val _pdfFields = MutableStateFlow<OperatorPdfFields?>(null)
-    val pdfFields: StateFlow<OperatorPdfFields?> = _pdfFields
 
     private var markedRead = false
 
@@ -59,22 +43,10 @@ class RecallDetailViewModel(
                 markedRead = true
                 store.markRead(id)
             }
-            val attachmentUrl = entity.attachmentUrl
             when (entity.source) {
-                RecallSource.SAFETY_GATE ->
-                    loadSafetyGateDetail(entity.remoteId)
-                RecallSource.IT_OPERATOR ->
-                    if (attachmentUrl != null) {
-                        pdfLoader.load(attachmentUrl).collect { part ->
-                            when (part) {
-                                is OperatorPdfPart.Photos -> _pdfPhotos.value = PdfPhotosState.Loaded(part.photos)
-                                is OperatorPdfPart.Fields -> _pdfFields.value = part.fields
-                            }
-                        }
-                    } else {
-                        _pdfPhotos.value = PdfPhotosState.Loaded(emptyList())
-                    }
-                RecallSource.IT_MINISTRY -> Unit
+                RecallSource.SAFETY_GATE -> loadSafetyGateDetail(entity.remoteId)
+                // Operator photos and fields are stored at sync (OperatorPdfArchive); nothing to load.
+                RecallSource.IT_OPERATOR, RecallSource.IT_MINISTRY -> Unit
             }
         }
     }

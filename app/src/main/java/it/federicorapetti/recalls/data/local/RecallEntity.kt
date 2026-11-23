@@ -1,9 +1,11 @@
 package it.federicorapetti.recalls.data.local
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import it.federicorapetti.recalls.data.remote.salute.OperatorPdfFields
 import it.federicorapetti.recalls.data.model.RecallSource
 
 @Entity(
@@ -26,15 +28,19 @@ data class RecallEntity(
     val attachmentUrl: String?,
     val isRevocation: Boolean,
     @ColumnInfo(defaultValue = "0") val isNew: Boolean = false,
-    @ColumnInfo(defaultValue = "0") val isRead: Boolean = false
+    @ColumnInfo(defaultValue = "0") val isRead: Boolean = false,
+    @Embedded(prefix = "pdf_") val pdfFields: OperatorPdfFields? = null,
+    @ColumnInfo(defaultValue = "0") val pdfPhotoCount: Int = 0,
+    /** Set once the operator recall's PDF was processed (photos/fields stored, or permanently unavailable). */
+    val pdfParsedAt: Long? = null
 )
 
 /** GLOSSARY: Unread = New and not yet Read. */
 val RecallEntity.isUnread: Boolean get() = isNew && !isRead
 
 /**
- * Every [RecallEntity] column except [RecallEntity.isNew] / [RecallEntity.isRead].
- * Used as a partial entity for upserts so that sync never overwrites the read/new flags.
+ * Every [RecallEntity] column except [RecallEntity.isNew] / [RecallEntity.isRead] and the `pdf*`
+ * columns (owned by OperatorPdfArchive).
  */
 data class RecallContent(
     val id: String,
@@ -51,6 +57,14 @@ data class RecallContent(
     val webUrl: String,
     val attachmentUrl: String?,
     val isRevocation: Boolean
+)
+
+/** PDF-derived columns of one operator recall, written by OperatorPdfArchive. */
+data class RecallPdfUpdate(
+    val id: String,
+    @Embedded(prefix = "pdf_") val pdfFields: OperatorPdfFields?,
+    val pdfPhotoCount: Int,
+    val pdfParsedAt: Long
 )
 
 @Entity(tableName = "source_state")

@@ -7,9 +7,9 @@ import java.io.File
 
 /**
  * Extracts a hi-res crop of every product-photo region found on the first page of an
- * already-downloaded Ministero della Salute recall PDF, with [PdfPageRenderer], for display in
- * the detail screen's carousel. Returns an empty list when the PDF has no photo boxes (e.g. a
- * revocation notice) so the UI can fall back to the generic placeholder icon.
+ * already-downloaded Ministero della Salute recall PDF, with [PdfPageRenderer]; the crops are
+ * stored as JPEG files by OperatorPdfArchive. Returns an empty list when the PDF has no photo boxes
+ * (e.g. a revocation notice) so the UI can fall back to the generic placeholder icon.
  *
  * Blocking; call on [kotlinx.coroutines.Dispatchers.IO].
  */

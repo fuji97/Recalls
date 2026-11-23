@@ -5,62 +5,38 @@ import android.graphics.Bitmap
 import it.federicorapetti.recalls.data.remote.downloadTo
 import it.federicorapetti.recalls.image.PdfPhotoExtractor
 import java.io.File
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 
-sealed interface OperatorPdfPart {
-    data class Photos(val photos: List<Bitmap>) : OperatorPdfPart
-    data class Fields(val fields: OperatorPdfFields?) : OperatorPdfPart
-}
+data class OperatorPdf(val photos: List<Bitmap>, val fields: OperatorPdfFields?)
 
 class OperatorPdfLoader(private val context: Context, private val httpClient: OkHttpClient) {
 
     /**
-     * Downloads the recall PDF once and feeds both the photo carousel and the form-field rows
-     * from that single copy. Emits exactly one [OperatorPdfPart.Photos] first, then one
-     * [OperatorPdfPart.Fields] only if the download succeeded. Photos publish first so the
-     * carousel never waits on the PDFBox parse. Every failure degrades gracefully: a download
-     * failure or corrupt PDF yields no photos and no fields; a PDF that isn't the known
-     * operator-form template yields no fields (and possibly still photos, since photo boxes are
-     * template-independent). Never throws except cancellation.
+     * Downloads the PDF once and extracts photos and form fields. Throws when the download fails
+     * (the caller decides whether to retry); a corrupt or non-template PDF yields no photos and/or
+     * null fields.
      */
-    fun load(attachmentUrl: String): Flow<OperatorPdfPart> = flow {
+    suspend fun load(attachmentUrl: String): OperatorPdf = withContext(Dispatchers.IO) {
         val file = File.createTempFile("recall", ".pdf", context.cacheDir)
         try {
-            try {
-                httpClient.downloadTo(attachmentUrl, file)
-            } catch (e: CancellationException) {
-                throw e
+            httpClient.downloadTo(attachmentUrl, file)
+            val photos = try {
+                PdfPhotoExtractor.extract(file)
             } catch (e: Exception) {
-                emit(OperatorPdfPart.Photos(emptyList()))
-                return@flow
+                emptyList()
             }
-            emit(
-                OperatorPdfPart.Photos(
-                    try {
-                        PdfPhotoExtractor.extract(file)
-                    } catch (e: Exception) {
-                        emptyList()
-                    }
-                )
-            )
-            emit(
-                OperatorPdfPart.Fields(
-                    try {
-                        OperatorPdfFieldsReader.read(context, file)
-                    } catch (e: Exception) {
-                        null
-                    } catch (e: LinkageError) {
-                        null // BouncyCastle is excluded; a certificate-encrypted PDF would hit a missing class.
-                    }
-                )
-            )
+            val fields = try {
+                OperatorPdfFieldsReader.read(context, file)
+            } catch (e: Exception) {
+                null
+            } catch (e: LinkageError) {
+                null // BouncyCastle is excluded; a certificate-encrypted PDF would hit a missing class.
+            }
+            OperatorPdf(photos, fields)
         } finally {
             file.delete()
         }
-    }.flowOn(Dispatchers.IO)
+    }
 }

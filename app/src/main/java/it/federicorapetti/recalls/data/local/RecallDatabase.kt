@@ -7,7 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [RecallEntity::class, SourceStateEntity::class, SgBarcodeEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class RecallDatabase : RoomDatabase() {
@@ -30,6 +30,18 @@ abstract class RecallDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `sg_barcodes` (`recallId` TEXT NOT NULL, `codes` TEXT NOT NULL, PRIMARY KEY(`recallId`))"
                 )
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                listOf(
+                    "productName", "brand", "operator", "lot", "plantMark", "producer",
+                    "plantSite", "expiry", "quantity", "reasonDetail", "warnings"
+                ).forEach { db.execSQL("ALTER TABLE recalls ADD COLUMN pdf_$it TEXT") }
+                db.execSQL("ALTER TABLE recalls ADD COLUMN pdfPhotoCount INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE recalls ADD COLUMN pdfParsedAt INTEGER")
+                db.execSQL("UPDATE recalls SET imageUrl = NULL WHERE source = 'IT_OPERATOR'")
             }
         }
     }

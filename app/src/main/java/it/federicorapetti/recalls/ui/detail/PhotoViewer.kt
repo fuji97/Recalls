@@ -67,7 +67,7 @@ private const val DOUBLE_TAP_SCALE = 2.5f
 /**
  * Fullscreen, zoomable photo viewer shown as a [Dialog] over the caller.
  *
- * [photos] are Coil-compatible models: a URL [String] or an in-memory [Bitmap]. Callers must pass
+ * [photos] are Coil-compatible models: a URL [String], a local [java.io.File], or an in-memory [Bitmap]. Callers must pass
  * at least one photo. [attribution] is always shown; [pdfUrl], when non-null, adds a button that
  * opens the recall PDF (required next to third-party Operator photos).
  */

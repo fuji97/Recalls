@@ -22,6 +22,14 @@ _Avoid_: Italian recall, IT recall
 A Recall published by the Italian Ministry of Health itself as a food-safety warning, rather than filed by an operator.
 _Avoid_: Ministry recall, avviso
 
+**Reason**:
+Why a Recall was issued: the risk types of a Safety Gate alert, the hazard of a Ministry warning, or the motive stated in an operator recall's PDF, falling back to its category.
+_Avoid_: Motive, cause
+
+**Preview image**:
+The single photo that represents a Recall on its card and in its notification.
+_Avoid_: Thumbnail
+
 ### Origin
 
 **Source**:

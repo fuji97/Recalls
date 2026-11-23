@@ -9,9 +9,8 @@ import kotlin.math.roundToInt
 
 /**
  * Renders a [PdfRenderer.Page] at low resolution to locate product-photo regions with
- * [PhotoRegionFinder], then re-renders hi-res crops of individual regions on demand. Shared by
- * [PdfPhotoDecoder] (single largest-region crop for list thumbnails) and [PdfPhotoExtractor]
- * (every region, for the detail-screen carousel).
+ * [PhotoRegionFinder], then re-renders hi-res crops of individual regions on demand. Used by
+ * [PdfPhotoExtractor] (every region, stored at sync by OperatorPdfArchive).
  */
 object PdfPageRenderer {
     private const val DETECT_WIDTH = 600

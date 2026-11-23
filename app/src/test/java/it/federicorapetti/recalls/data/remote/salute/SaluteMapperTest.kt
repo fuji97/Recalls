@@ -6,6 +6,7 @@ import java.time.ZoneOffset
 import kotlinx.serialization.json.decodeFromStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -44,14 +45,7 @@ class SaluteMapperTest {
             "https://www.salute.gov.it/new/it/ext-avviso-sicurezza-alimentare/filetti-di-alici-olio",
             content.webUrl
         )
-        assertEquals(content.attachmentUrl, content.imageUrl)
-    }
-
-    @Test
-    fun `imageUrl is null when the operator has no attachment`() {
-        val node = loadNodes().first { it.id == "uuid-2" }
-
-        assertEquals(null, node.toContent().imageUrl)
+        assertNull(content.imageUrl)
     }
 
     @Test
